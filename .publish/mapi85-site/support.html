@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Soutenir le projet | tools.mapi85.fr</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a24;--bg4:#22222e;--border:rgba(255,255,255,0.07);--text:#f0f0f8;--text2:#9090b0;--text3:#5a5a78;--accent:#7c6cff;--accent2:#4fd1c5;--accent3:#f6ad55;--green:#68d391;--radius:12px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(124,108,255,.1) 0%,transparent 60%),radial-gradient(ellipse 40% 30% at 80% 100%,rgba(79,209,197,.07) 0%,transparent 50%)}
+nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:16px 48px;background:rgba(10,10,15,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nav-logo{font-size:18px;font-weight:800;letter-spacing:-.03em;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none}
+.nav-links{display:flex;gap:32px}
+.nav-links a{color:var(--text2);text-decoration:none;font-size:14px;font-weight:600;transition:color .2s}
+.nav-links a:hover,.nav-links a.active{color:var(--text)}
+.nav-links a.active{color:var(--accent)}
+.nav-cta{background:var(--accent);color:#fff;padding:9px 20px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700}
+
+/* ── Hero ── */
+.hero{position:relative;z-index:1;text-align:center;padding:100px 48px 60px;max-width:700px;margin:0 auto}
+.hero-tag{display:inline-flex;align-items:center;gap:8px;background:rgba(246,173,85,.1);border:1px solid rgba(246,173,85,.25);color:var(--accent3);padding:6px 14px;border-radius:100px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:28px}
+h1{font-size:clamp(36px,6vw,64px);font-weight:800;line-height:1.05;letter-spacing:-.04em;margin-bottom:20px}
+h1 em{font-style:normal;background:linear-gradient(135deg,var(--accent3),#f093fb);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{font-size:16px;color:var(--text2);line-height:1.7;font-family:'DM Mono',monospace;font-weight:300;max-width:520px;margin:0 auto 50px}
+
+/* ── Amounts ── */
+.amounts{position:relative;z-index:1;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;padding:0 48px 64px;max-width:900px;margin:0 auto}
+.amount-card{background:var(--bg2);border:2px solid var(--border);border-radius:16px;padding:28px 24px;text-align:center;cursor:pointer;transition:all .25s;flex:1;min-width:160px;max-width:200px;user-select:none}
+.amount-card:hover,.amount-card.selected{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 8px 30px rgba(124,108,255,.2)}
+.amount-card.selected{background:linear-gradient(135deg,rgba(124,108,255,.12),rgba(79,209,197,.06))}
+.amount-card.featured{border-color:rgba(246,173,85,.4);background:linear-gradient(135deg,rgba(246,173,85,.08),var(--bg2))}
+.amount-card.featured:hover,.amount-card.featured.selected{border-color:var(--accent3);box-shadow:0 8px 30px rgba(246,173,85,.2)}
+.amount-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:8px}
+.amount-val{font-size:32px;font-weight:800;letter-spacing:-.03em;margin-bottom:6px}
+.amount-val span{font-size:18px;color:var(--text3)}
+.amount-desc{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;font-weight:300}
+.amount-badge{display:inline-block;background:rgba(246,173,85,.15);color:var(--accent3);padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;font-family:'DM Mono',monospace;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+
+/* ── Payment methods ── */
+.payment-section{position:relative;z-index:1;max-width:700px;margin:0 auto;padding:0 48px 80px}
+.section-label{font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--accent2);margin-bottom:16px;font-family:'DM Mono',monospace}
+.payment-tabs{display:flex;gap:0;background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:24px}
+.payment-tab{flex:1;padding:12px 16px;text-align:center;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;border:none;background:transparent;color:var(--text3)}
+.payment-tab:hover{color:var(--text2)}
+.payment-tab.active{background:var(--bg3);color:var(--text)}
+.payment-panel{display:none}
+.payment-panel.active{display:block}
+
+/* Card payment */
+.card-form{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px}
+.card-form h3{font-size:18px;font-weight:700;margin-bottom:8px}
+.card-form p{color:var(--text2);font-size:13.5px;font-family:'DM Mono',monospace;font-weight:300;line-height:1.6;margin-bottom:24px}
+.stripe-placeholder{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center;color:var(--text3);font-family:'DM Mono',monospace;font-size:13px;margin-bottom:20px}
+.stripe-placeholder strong{display:block;font-size:15px;color:var(--text2);margin-bottom:6px}
+.btn-pay{width:100%;background:var(--accent);color:#fff;border:none;padding:15px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-pay:hover{opacity:.9;transform:translateY(-1px)}
+.pay-note{font-size:12px;color:var(--text3);text-align:center;margin-top:12px;font-family:'DM Mono',monospace}
+
+/* Crypto */
+.crypto-grid{display:flex;flex-direction:column;gap:16px}
+.crypto-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:22px;transition:border-color .2s}
+.crypto-card:hover{border-color:rgba(124,108,255,.3)}
+.crypto-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.crypto-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.crypto-icon.xmr{background:rgba(255,102,0,.15)}
+.crypto-icon.btc{background:rgba(247,147,26,.15)}
+.crypto-icon.eth{background:rgba(98,126,234,.15)}
+.crypto-name{font-size:15px;font-weight:700}
+.crypto-subname{font-size:11.5px;color:var(--text3);font-family:'DM Mono',monospace}
+.crypto-address-wrap{display:flex;align-items:center;gap:8px}
+.crypto-address{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:11.5px;color:var(--text2);word-break:break-all;line-height:1.5}
+.copy-btn{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;cursor:pointer;font-size:13px;color:var(--text2);transition:all .2s;white-space:nowrap;font-family:'Syne',sans-serif;font-weight:600}
+.copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+.copy-btn.copied{border-color:var(--green);color:var(--green)}
+.crypto-note{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:10px;line-height:1.5}
+
+/* ── Why section ── */
+.why-section{position:relative;z-index:1;max-width:700px;margin:0 auto;padding:0 48px 80px}
+.why-card{background:linear-gradient(135deg,rgba(124,108,255,.07),rgba(79,209,197,.04));border:1px solid rgba(124,108,255,.15);border-radius:16px;padding:36px}
+.why-card h3{font-size:20px;font-weight:700;margin-bottom:16px}
+.why-items{display:flex;flex-direction:column;gap:12px}
+.why-item{display:flex;gap:12px;align-items:flex-start}
+.why-dot{width:6px;height:6px;background:var(--accent2);border-radius:50%;flex-shrink:0;margin-top:7px}
+.why-text{font-size:14px;color:var(--text2);line-height:1.6;font-family:'DM Mono',monospace;font-weight:300}
+.why-text strong{color:var(--text);font-weight:600}
+
+footer{position:relative;z-index:1;padding:36px 48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.footer-logo{font-size:15px;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+footer a{color:var(--text3);text-decoration:none;font-size:13px;font-family:'DM Mono',monospace}
+footer a:hover{color:var(--text2)}
+.footer-links{display:flex;gap:24px}
+
+@media(max-width:768px){nav{padding:14px 20px}.nav-links{display:none}.hero{padding:70px 20px 50px}.amounts{padding:0 20px 50px}.payment-section,.why-section{padding:0 20px 60px}footer{padding:24px 20px}}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/" class="nav-logo">tools.mapi85.fr</a>
+  <div class="nav-links">
+    <a href="/">Accueil</a>
+    <a href="/browsermind">BrowserMind</a>
+    <a href="/support" class="active">Soutenir</a>
+  </div>
+  <a href="/browsermind" class="nav-cta">BrowserMind →</a>
+</nav>
+
+<div class="hero">
+  <div class="hero-tag">☕ Soutenir le projet</div>
+  <h1>Aidez à garder<br/><em>BrowserMind libre</em></h1>
+  <p class="hero-sub">BrowserMind est gratuit, open-source et sans publicité. Votre soutien finance le temps de développement et les nouvelles fonctionnalités.</p>
+</div>
+
+<!-- Amount selector -->
+<div class="amounts" id="amounts">
+  <div class="amount-card" data-amount="3" onclick="selectAmount(this)">
+    <div class="amount-label">Café</div>
+    <div class="amount-val"><span>€</span>3</div>
+    <div class="amount-desc">Merci ! ☕</div>
+  </div>
+  <div class="amount-card featured selected" data-amount="10" onclick="selectAmount(this)">
+    <div class="amount-badge">Populaire</div>
+    <div class="amount-label">Soutien</div>
+    <div class="amount-val"><span>€</span>10</div>
+    <div class="amount-desc">Vraiment sympa 🙏</div>
+  </div>
+  <div class="amount-card" data-amount="25" onclick="selectAmount(this)">
+    <div class="amount-label">Sponsor</div>
+    <div class="amount-val"><span>€</span>25</div>
+    <div class="amount-desc">Vous êtes incroyable ⭐</div>
+  </div>
+  <div class="amount-card" data-amount="50" onclick="selectAmount(this)">
+    <div class="amount-label">Mécène</div>
+    <div class="amount-val"><span>€</span>50</div>
+    <div class="amount-desc">Merci infiniment 🚀</div>
+  </div>
+</div>
+
+<!-- Payment -->
+<div class="payment-section">
+  <div class="section-label">Méthode de paiement</div>
+
+  <div class="payment-tabs">
+    <button class="payment-tab active" onclick="switchTab('card', this)">💳 Carte bancaire</button>
+    <button class="payment-tab" onclick="switchTab('crypto', this)">🔐 Crypto</button>
+  </div>
+
+  <!-- Card panel -->
+  <div class="payment-panel active" id="panel-card">
+    <div class="card-form">
+      <h3>Paiement sécurisé</h3>
+      <p>Paiement unique, sans abonnement. Traité via Stripe — votre carte n'est jamais stockée ici.</p>
+      <div class="stripe-placeholder">
+        <strong>Intégration Stripe à configurer</strong>
+        Remplacez ce bloc par votre composant Stripe Elements ou un bouton Stripe Payment Link
+      </div>
+      <button class="btn-pay" id="pay-btn" onclick="handlePayment()">
+        <span>Envoyer</span> <span id="pay-amount">€10</span> <span>→</span>
+      </button>
+      <div class="pay-note">🔒 Paiement sécurisé par Stripe · Pas d'abonnement</div>
+    </div>
+  </div>
+
+  <!-- Crypto panel -->
+  <div class="payment-panel" id="panel-crypto">
+    <div class="crypto-grid">
+
+      <div class="crypto-card">
+        <div class="crypto-header">
+          <div class="crypto-icon xmr">◎</div>
+          <div>
+            <div class="crypto-name">Monero</div>
+            <div class="crypto-subname">XMR — Paiement privé recommandé</div>
+          </div>
+        </div>
+        <div class="crypto-address-wrap">
+          <div class="crypto-address" id="addr-xmr">VOTRE_ADRESSE_XMR_ICI</div>
+          <button class="copy-btn" onclick="copyAddr('addr-xmr', this)">📋 Copier</button>
+        </div>
+        <div class="crypto-note">⚡ Monero offre des transactions privées et des frais minimes. Recommandé si vous souhaitez rester anonyme.</div>
+      </div>
+
+      <div class="crypto-card">
+        <div class="crypto-header">
+          <div class="crypto-icon btc">₿</div>
+          <div>
+            <div class="crypto-name">Bitcoin</div>
+            <div class="crypto-subname">BTC — Réseau principal ou Lightning</div>
+          </div>
+        </div>
+        <div class="crypto-address-wrap">
+          <div class="crypto-address" id="addr-btc">VOTRE_ADRESSE_BTC_ICI</div>
+          <button class="copy-btn" onclick="copyAddr('addr-btc', this)">📋 Copier</button>
+        </div>
+        <div class="crypto-note">Réseau Bitcoin ou Lightning Network acceptés.</div>
+      </div>
+
+      <div class="crypto-card">
+        <div class="crypto-header">
+          <div class="crypto-icon eth">Ξ</div>
+          <div>
+            <div class="crypto-name">Ethereum / USDC</div>
+            <div class="crypto-subname">ETH ou stablecoins ERC-20</div>
+          </div>
+        </div>
+        <div class="crypto-address-wrap">
+          <div class="crypto-address" id="addr-eth">VOTRE_ADRESSE_ETH_ICI</div>
+          <button class="copy-btn" onclick="copyAddr('addr-eth', this)">📋 Copier</button>
+        </div>
+        <div class="crypto-note">Compatible Ethereum mainnet, Polygon, Arbitrum.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Why section -->
+<div class="why-section">
+  <div class="section-label">Pourquoi soutenir ?</div>
+  <div class="why-card">
+    <h3>BrowserMind restera gratuit et open-source</h3>
+    <div class="why-items">
+      <div class="why-item"><div class="why-dot"></div><div class="why-text">Ce projet est développé et maintenu par <strong>une seule personne</strong>, sur mon temps libre</div></div>
+      <div class="why-item"><div class="why-dot"></div><div class="why-text">Aucune publicité, aucun tracking, <strong>aucune revente de données</strong></div></div>
+      <div class="why-item"><div class="why-dot"></div><div class="why-text">Votre soutien finance directement les <strong>nouvelles fonctionnalités</strong> et la correction de bugs</div></div>
+      <div class="why-item"><div class="why-dot"></div><div class="why-text">Chaque contribution, même petite, fait une vraie différence — <strong>merci sincèrement</strong></div></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <a href="/" class="footer-logo">tools.mapi85.fr</a>
+  <div class="footer-links">
+    <a href="/">Accueil</a>
+    <a href="/browsermind">BrowserMind</a>
+    <a href="https://github.com" target="_blank">GitHub</a>
+  </div>
+  <div style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace">Merci ☕</div>
+</footer>
+
+<script>
+let selectedAmount = 10;
+
+function selectAmount(el) {
+  document.querySelectorAll('.amount-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedAmount = parseInt(el.dataset.amount);
+  document.getElementById('pay-amount').textContent = '€' + selectedAmount;
+}
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.payment-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.payment-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+function copyAddr(id, btn) {
+  const text = document.getElementById(id).textContent.trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✅ Copié';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋 Copier'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function handlePayment() {
+  // TODO: Intégrer Stripe Payment Link ou Stripe Elements
+  // Exemple : window.location.href = 'https://buy.stripe.com/VOTRE_LIEN?amount=' + selectedAmount * 100;
+  alert('Intégration Stripe à configurer — remplacez cette fonction par votre lien Stripe.');
+}
+</script>
+</body>
+</html>

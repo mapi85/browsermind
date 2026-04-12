@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BrowserMind — Assistant IA de navigation | tools.mapi85.fr</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a24;--bg4:#22222e;--border:rgba(255,255,255,0.07);--text:#f0f0f8;--text2:#9090b0;--text3:#5a5a78;--accent:#7c6cff;--accent2:#4fd1c5;--accent3:#f6ad55;--glow:rgba(124,108,255,0.12);--radius:12px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 70% 40% at 10% 0%,rgba(124,108,255,.09) 0%,transparent 55%),radial-gradient(ellipse 50% 35% at 90% 90%,rgba(79,209,197,.07) 0%,transparent 50%)}
+nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:16px 48px;background:rgba(10,10,15,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nav-logo{font-size:18px;font-weight:800;letter-spacing:-.03em;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none}
+.nav-links{display:flex;gap:32px}
+.nav-links a{color:var(--text2);text-decoration:none;font-size:14px;font-weight:600;letter-spacing:.02em;transition:color .2s}
+.nav-links a:hover,.nav-links a.active{color:var(--text)}
+.nav-links a.active{color:var(--accent)}
+.nav-cta{background:var(--accent);color:#fff;padding:9px 20px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700;transition:opacity .2s}
+.nav-cta:hover{opacity:.85}
+.hero{position:relative;z-index:1;display:grid;grid-template-columns:1fr 400px;gap:60px;align-items:center;padding:90px 48px 80px;max-width:1100px;margin:0 auto}
+.hero-tag{display:inline-flex;align-items:center;gap:8px;background:rgba(124,108,255,.12);border:1px solid rgba(124,108,255,.25);color:var(--accent);padding:6px 14px;border-radius:100px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:28px}
+h1{font-size:clamp(34px,5vw,62px);font-weight:800;line-height:1.05;letter-spacing:-.04em;margin-bottom:22px}
+h1 em{font-style:normal;background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{font-size:16px;color:var(--text2);line-height:1.65;max-width:480px;margin-bottom:36px;font-family:'DM Mono',monospace;font-weight:300}
+.hero-actions{display:flex;gap:14px;flex-wrap:wrap}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;padding:13px 26px;border-radius:10px;text-decoration:none;font-size:14px;font-weight:700;transition:all .2s;border:none;cursor:pointer}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(124,108,255,.4)}
+.btn-ghost{display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--text2);padding:13px 26px;border-radius:10px;text-decoration:none;font-size:14px;font-weight:600;border:1px solid var(--border);transition:all .2s}
+.btn-ghost:hover{border-color:var(--accent);color:var(--text)}
+.panel-mockup{background:var(--bg2);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.5);animation:float 6s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.panel-header{background:var(--bg3);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.panel-logo{font-size:13px;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.panel-dots{display:flex;gap:5px}
+.panel-dot{width:8px;height:8px;border-radius:50%}
+.panel-dot:nth-child(1){background:#ff5f56}.panel-dot:nth-child(2){background:#ffbd2e}.panel-dot:nth-child(3){background:#27c93f}
+.panel-chips{display:flex;gap:5px;padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.chip{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;background:var(--bg4);color:var(--text3)}
+.chip.active{background:var(--accent);color:#fff}
+.panel-messages{padding:14px;display:flex;flex-direction:column;gap:10px;min-height:160px}
+.msg-user{align-self:flex-end;background:rgba(124,108,255,.15);border:1px solid rgba(124,108,255,.2);border-radius:10px 10px 3px 10px;padding:9px 13px;font-size:12px;max-width:85%}
+.msg-agent{align-self:flex-start;background:var(--bg3);border:1px solid var(--border);border-radius:3px 10px 10px 10px;padding:9px 13px;font-size:12px;color:var(--text2);max-width:85%;font-family:'DM Mono',monospace;font-weight:300}
+.msg-action{font-size:11px;color:var(--accent3);padding:6px 10px;background:rgba(246,173,85,.07);border:1px solid rgba(246,173,85,.15);border-radius:6px;font-family:'DM Mono',monospace}
+.panel-input{padding:12px;border-top:1px solid var(--border);display:flex;gap:8px}
+.panel-input-bar{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:11.5px;color:var(--text3);font-family:'DM Mono',monospace}
+.panel-send{background:var(--accent);border:none;border-radius:8px;width:32px;height:32px;cursor:pointer;color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center}
+.content{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 48px}
+.section-label{font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--accent2);margin-bottom:12px;font-family:'DM Mono',monospace}
+h2{font-size:clamp(26px,3.5vw,40px);font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-bottom:40px}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:80px}
+.feature{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:26px;transition:border-color .2s}
+.feature:hover{border-color:rgba(124,108,255,.3)}
+.feature-icon{font-size:24px;margin-bottom:14px}
+.feature-title{font-size:15px;font-weight:700;margin-bottom:7px;letter-spacing:-.01em}
+.feature-desc{font-size:13px;color:var(--text2);line-height:1.65;font-family:'DM Mono',monospace;font-weight:300}
+.tools-section{margin-bottom:80px}
+.tools-list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.tool-item{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;gap:12px;align-items:flex-start}
+.tool-item-icon{width:34px;height:34px;background:var(--bg3);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;border:1px solid var(--border)}
+.tool-item-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px}
+.tool-item-desc{font-size:11.5px;color:var(--text3);font-family:'DM Mono',monospace;font-weight:300}
+.builder-section{margin-bottom:80px}
+.builder-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:36px}
+.builder-card h3{font-size:20px;font-weight:700;margin-bottom:14px;letter-spacing:-.02em}
+.builder-card p{color:var(--text2);line-height:1.65;font-size:14px;margin-bottom:20px;font-family:'DM Mono',monospace;font-weight:300}
+.code-block{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:18px 22px;margin:18px 0;overflow-x:auto;font-family:'DM Mono',monospace;font-size:12.5px;line-height:1.7}
+.code-block .kw{color:var(--accent)}.code-block .str{color:var(--accent2)}.code-block .key{color:var(--accent3)}.code-block .cmt{color:var(--text3);font-style:italic}
+.schema-table{width:100%;border-collapse:collapse;margin:18px 0;font-size:13px}
+.schema-table th{text-align:left;padding:10px 14px;background:var(--bg3);color:var(--text2);font-family:'DM Mono',monospace;font-weight:500;font-size:11px;border-bottom:1px solid var(--border)}
+.schema-table td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:top;line-height:1.5}
+.schema-table td:first-child{color:var(--accent3);font-family:'DM Mono',monospace;font-size:12px}
+.schema-table td:nth-child(2){color:var(--accent);font-family:'DM Mono',monospace;font-size:11px}
+.badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:10.5px;font-family:'DM Mono',monospace;font-weight:500}
+.badge-req{background:rgba(252,129,129,.12);color:#fc8181}
+.badge-opt{background:rgba(124,108,255,.1);color:var(--accent)}
+.registry-section{margin-bottom:80px}
+.registry-card{background:linear-gradient(135deg,rgba(124,108,255,.08),rgba(79,209,197,.05));border:1px solid rgba(124,108,255,.2);border-radius:16px;padding:36px}
+.registry-card h3{font-size:20px;font-weight:700;margin-bottom:12px}
+.registry-card p{color:var(--text2);line-height:1.65;font-size:14px;margin-bottom:20px;font-family:'DM Mono',monospace;font-weight:300}
+.steps{display:flex;flex-direction:column;gap:14px;margin:20px 0}
+.step{display:flex;gap:14px;align-items:flex-start}
+.step-num{width:26px;height:26px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.step-text{padding-top:3px;font-size:13.5px;color:var(--text2);line-height:1.6;font-family:'DM Mono',monospace;font-weight:300}
+.step-text strong{color:var(--text);font-weight:600}
+.cta-section{text-align:center;padding:72px 48px;position:relative;z-index:1}
+.cta-section h2{margin-bottom:14px}
+.cta-section p{color:var(--text2);font-size:15px;margin-bottom:32px;font-family:'DM Mono',monospace;font-weight:300}
+footer{position:relative;z-index:1;padding:36px 48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.footer-logo{font-size:15px;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+footer a{color:var(--text3);text-decoration:none;font-size:13px;font-family:'DM Mono',monospace}
+footer a:hover{color:var(--text2)}
+.footer-links{display:flex;gap:24px}
+@media(max-width:900px){.hero{grid-template-columns:1fr;padding:70px 20px 50px}.panel-mockup{display:none}.content{padding:0 20px}.features-grid{grid-template-columns:1fr}.tools-list{grid-template-columns:1fr}nav{padding:14px 20px}.nav-links{display:none}footer{padding:24px 20px}}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/" class="nav-logo">tools.mapi85.fr</a>
+  <div class="nav-links">
+    <a href="/">Accueil</a>
+    <a href="/browsermind" class="active">BrowserMind</a>
+    <a href="/support">Soutenir</a>
+  </div>
+  <a href="https://chromewebstore.google.com" class="nav-cta" target="_blank">Installer →</a>
+</nav>
+
+<div class="hero">
+  <div>
+    <div class="hero-tag">Extension Chrome · Manifest V3</div>
+    <h1>Naviguez le web<br/>avec une <em>IA intégrée</em></h1>
+    <p class="hero-sub">BrowserMind est un assistant IA dans votre panneau latéral Chrome. Il comprend, navigue, extrait et automatise en langage naturel.</p>
+    <div class="hero-actions">
+      <a href="https://chromewebstore.google.com" class="btn-primary" target="_blank">🔌 Installer sur Chrome</a>
+      <a href="https://github.com" class="btn-ghost" target="_blank">⭐ GitHub</a>
+    </div>
+  </div>
+  <div class="panel-mockup">
+    <div class="panel-header">
+      <div class="panel-logo">🧠 BrowserMind</div>
+      <div class="panel-dots"><div class="panel-dot"></div><div class="panel-dot"></div><div class="panel-dot"></div></div>
+    </div>
+    <div class="panel-chips">
+      <div class="chip active">🧭 Libre</div><div class="chip">🔍 Recherche</div><div class="chip">📊 Analyse</div><div class="chip">+9</div>
+    </div>
+    <div class="panel-messages">
+      <div class="msg-user">Extrais les prix de cette page en CSV</div>
+      <div class="msg-action">📤 extract_data · type=table · format=csv</div>
+      <div class="msg-agent">J'ai extrait 24 produits. Génération…</div>
+      <div class="msg-action">💾 generate_document · products-2024.csv</div>
+    </div>
+    <div class="panel-input">
+      <div class="panel-input-bar">Que voulez-vous faire ?</div>
+      <button class="panel-send">↗</button>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+  <div style="padding-top:72px;margin-bottom:14px"><div class="section-label">Fonctionnalités</div></div>
+  <h2>Tout ce qu'il peut faire</h2>
+  <div class="features-grid">
+    <div class="feature"><div class="feature-icon">🎯</div><div class="feature-title">12 modes contextuels</div><div class="feature-desc">Voyage, Recherche, Shopping, Immobilier, Emploi… L'agent adapte son comportement automatiquement.</div></div>
+    <div class="feature"><div class="feature-icon">🔧</div><div class="feature-title">14 outils natifs</div><div class="feature-desc">Cliquer, saisir, scroller, extraire, générer des documents, captures d'écran, APIs…</div></div>
+    <div class="feature"><div class="feature-icon">🌐</div><div class="feature-title">Multi-providers</div><div class="feature-desc">Anthropic, OpenAI, xAI, Mistral, DeepSeek, Gemini, OpenRouter, Ollama et tout provider compatible.</div></div>
+    <div class="feature"><div class="feature-icon">🧩</div><div class="feature-title">Outils extensibles</div><div class="feature-desc">Créez vos propres outils ou chargez un registre distant. Sans réinstaller l'extension.</div></div>
+    <div class="feature"><div class="feature-icon">🗂️</div><div class="feature-title">Multi-onglets</div><div class="feature-desc">Conversations isolées par onglet. Jusqu'à 10 sessions simultanées avec mémoire indépendante.</div></div>
+    <div class="feature"><div class="feature-icon">💾</div><div class="feature-title">Exports natifs</div><div class="feature-desc">CSV, HTML, JSON, Markdown, TXT avec noms dynamiques horodatés. Téléchargement direct.</div></div>
+  </div>
+
+  <div class="tools-section">
+    <div class="section-label">Outils natifs</div>
+    <h2>Ce que l'IA peut faire sur la page</h2>
+    <div class="tools-list">
+      <div class="tool-item"><div class="tool-item-icon">📄</div><div><div class="tool-item-name">get_page_content</div><div class="tool-item-desc">Lit le contenu complet de la page active</div></div></div>
+      <div class="tool-item"><div class="tool-item-icon">👆</div><div><div class="tool-item-name">click</div><div class="tool-item-desc">Clique sur un élément (CSS, texte ou XPath)</div></div></div>
+      <div class="tool-item"><div class="tool-item-icon">⌨️</div><div><div class="tool-item-name">type_text</div><div class="tool-item-desc">Saisit du texte dans un champ</div></div></div>
+      <div class="tool-item"><div class="tool-item-icon">↕️</div><div><div class="tool-item-name">scroll</div><div class="tool-item-desc">Défile la page (haut, bas, position absolue)</div></div></div>
+      <div class="tool-item"><div class="tool-item-icon">🌐</div><div><div class="tool-item-name">navigate</div><div class="tool-item-desc">Navigue vers une URL dans l'onglet actif</div></div></div>
+      <div class="tool-item"><div class="tool-item-icon">📝</div><div><div class="tool-item-name">fill_form</div><div class="tool-item-desc">Remplit plusieurs champs d'un formulaire en un appel</div></div></div>
+      <div class="tool-item"><div class="tool-item-icon">📤</div><div><div class="tool-item-name">extract_data</div><div class="tool-item-desc">Extrait tableaux, listes, liens, images</div></div></div>
+      <div class="tool-item"><div class="tool-item-icon">💾</div><div><div class="tool-item-name">generate_document</div><div class="tool-item-desc">Génère et télécharge CSV / HTML / JSON / MD / TXT</div></div></div>
+      <div class="tool-item"><div class="tool-item-icon">⬇️</div><div><div class="tool-item-name">download_file</div><div class="tool-item-desc">Télécharge un fichier depuis une URL</div></div></div>
+      <div class="tool-item"><div class="tool-item-icon">⏳</div><div><div class="tool-item-name">wait</div><div class="tool-item-desc">Attend un élément ou un délai en ms</div></div></div>
+      <div class="tool-item"><div class="tool-item-icon">📸</div><div><div class="tool-item-name">take_screenshot</div><div class="tool-item-desc">Capture la page visible en PNG horodatée</div></div></div>
+      <div class="tool-item"><div class="tool-item-icon">🔌</div><div><div class="tool-item-name">api_call</div><div class="tool-item-desc">Nominatim, OpenMeteo, DuckDuckGo, Wikidata…</div></div></div>
+      <div class="tool-item"><div class="tool-item-icon">🔍</div><div><div class="tool-item-name">web_search</div><div class="tool-item-desc">Recherche via DuckDuckGo sans quitter la page</div></div></div>
+      <div class="tool-item"><div class="tool-item-icon">🗂️</div><div><div class="tool-item-name">new_tab</div><div class="tool-item-desc">Ouvre une URL dans un nouvel onglet</div></div></div>
+    </div>
+  </div>
+
+  <div class="builder-section">
+    <div class="section-label">Extensibilité</div>
+    <h2>Créez votre propre outil</h2>
+    <div class="builder-card">
+      <h3>Format JSON d'un outil custom</h3>
+      <p>Un outil BrowserMind est un objet JSON décrivant ce que le LLM peut demander à l'extension de faire. La description est lue par l'IA — soyez précis.</p>
+      <table class="schema-table">
+        <thead><tr><th>Champ</th><th>Type</th><th>Statut</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>name</td><td>string</td><td><span class="badge badge-req">requis</span></td><td>Identifiant unique snake_case. Ex : <code>extract_emails</code></td></tr>
+          <tr><td>icon</td><td>string</td><td><span class="badge badge-opt">optionnel</span></td><td>Emoji affiché dans l'interface. Ex : <code>📧</code></td></tr>
+          <tr><td>label</td><td>string</td><td><span class="badge badge-opt">optionnel</span></td><td>Nom court affiché dans la liste</td></tr>
+          <tr><td>description</td><td>string</td><td><span class="badge badge-req">requis</span></td><td>Instruction lue par le LLM — expliquez quand et comment utiliser l'outil</td></tr>
+          <tr><td>input_schema</td><td>object</td><td><span class="badge badge-req">requis</span></td><td>JSON Schema des paramètres. Minimum : <code>{"type":"object","properties":{}}</code></td></tr>
+          <tr><td>executor</td><td>string</td><td><span class="badge badge-opt">optionnel</span></td><td><code>inject</code> · <code>web_search_ext</code> · <code>generate_document_ext</code> · <code>api_call_ext</code></td></tr>
+          <tr><td>injectScript</td><td>string</td><td><span class="badge badge-opt">si inject</span></td><td>Fonction JS exécutée dans la page. Reçoit <code>input</code>, retourne un objet.</td></tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top:28px">Exemple — Extracteur d'emails</h3>
+      <div class="code-block"><pre><span class="kw">{</span>
+  <span class="key">"name"</span>: <span class="str">"extract_emails"</span>,
+  <span class="key">"icon"</span>: <span class="str">"📧"</span>, <span class="key">"label"</span>: <span class="str">"Extraire emails"</span>,
+  <span class="key">"description"</span>: <span class="str">"Extrait tous les emails visibles sur la page courante."</span>,
+  <span class="key">"input_schema"</span>: <span class="kw">{ "type": "object", "properties": {}, "required": [] }</span>,
+  <span class="key">"executor"</span>: <span class="str">"inject"</span>,
+  <span class="key">"injectScript"</span>: <span class="str">"const m=[...document.body.innerText.matchAll(/[\\w.-]+@[\\w.-]+\\.[a-z]{2,}/gi)].map(m=&gt;m[0]); return {emails:[...new Set(m)]};"</span>
+<span class="kw">}</span></pre></div>
+
+      <h3 style="margin-top:28px">Exemple avec paramètres — Recherche ciblée</h3>
+      <div class="code-block"><pre><span class="kw">{</span>
+  <span class="key">"name"</span>: <span class="str">"search_and_summarize"</span>, <span class="key">"icon"</span>: <span class="str">"🔍"</span>, <span class="key">"label"</span>: <span class="str">"Rechercher"</span>,
+  <span class="key">"description"</span>: <span class="str">"Recherche un terme sur DuckDuckGo et retourne les résultats."</span>,
+  <span class="key">"input_schema"</span>: <span class="kw">{</span>
+    <span class="key">"type"</span>: <span class="str">"object"</span>,
+    <span class="key">"properties"</span>: <span class="kw">{</span>
+      <span class="key">"query"</span>: <span class="kw">{ "type": "string", "description": "Termes à rechercher" }</span>,
+      <span class="key">"max_results"</span>: <span class="kw">{ "type": "number" }</span>
+    <span class="kw">}</span>,
+    <span class="key">"required"</span>: <span class="kw">["query"]</span>
+  <span class="kw">}</span>,
+  <span class="key">"executor"</span>: <span class="str">"web_search_ext"</span>
+<span class="kw">}</span></pre></div>
+    </div>
+  </div>
+
+  <div class="registry-section">
+    <div class="section-label">Registre distant</div>
+    <h2>Partager vos outils</h2>
+    <div class="registry-card">
+      <h3>📡 Registre distant — principe</h3>
+      <p>Publiez un fichier JSON sur votre site. Vos utilisateurs le chargent en une URL, sans réinstaller l'extension. Vous mettez à jour le fichier, ils récupèrent les nouveaux outils au prochain démarrage.</p>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-text">Créez <strong>browsermind-tools.json</strong> avec votre tableau d'outils</div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-text">Publiez-le avec le header <strong><code>Access-Control-Allow-Origin: *</code></strong></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-text">BrowserMind → Config → Outils → URL → <strong>↻ Charger</strong></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-text">Les outils sont <strong>mis en cache local</strong> et rafraîchis à l'ouverture</div></div>
+      </div>
+      <div class="code-block"><pre><span class="cmt">// Structure attendue</span>
+<span class="kw">{</span>
+  <span class="key">"version"</span>: <span class="str">"1.0"</span>, <span class="key">"author"</span>: <span class="str">"votre-nom"</span>,
+  <span class="key">"tools"</span>: <span class="kw">[</span> <span class="kw">{</span> <span class="cmt">/* outil 1 */</span> <span class="kw">}</span>, <span class="kw">{</span> <span class="cmt">/* outil 2 */</span> <span class="kw">}</span> <span class="kw">]</span>
+<span class="kw">}</span></pre></div>
+    </div>
+  </div>
+</div>
+
+<div class="cta-section">
+  <div class="section-label">Prêt ?</div>
+  <h2>Installez BrowserMind gratuitement</h2>
+  <p>Chrome Web Store. Fonctionne avec votre propre clé API.</p>
+  <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+    <a href="https://chromewebstore.google.com" class="btn-primary" target="_blank">🔌 Installer sur Chrome</a>
+    <a href="/support" class="btn-ghost">☕ Soutenir</a>
+  </div>
+</div>
+
+<footer>
+  <a href="/" class="footer-logo">tools.mapi85.fr</a>
+  <div class="footer-links">
+    <a href="/">Accueil</a>
+    <a href="https://github.com" target="_blank">GitHub</a>
+    <a href="/support">Support</a>
+  </div>
+  <div style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace">Fait avec ☕ par mapi85</div>
+</footer>
+</body>
+</html>

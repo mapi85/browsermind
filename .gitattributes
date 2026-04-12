@@ -1,0 +1,25 @@
+# BrowserMind — Git line endings configuration
+# Ensures consistent LF line endings in the repo regardless of OS
+
+# Default: normalize all text files to LF in the repo
+* text=auto eol=lf
+
+# JavaScript / CSS / HTML — always LF
+*.js    text eol=lf
+*.css   text eol=lf
+*.html  text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
+*.svg   text eol=lf
+*.txt   text eol=lf
+
+# Binary files — never touch line endings
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>tools.mapi85.fr — Outils IA & Automatisation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #1a1a24;
+    --border: rgba(255,255,255,0.07);
+    --text: #f0f0f8;
+    --text2: #9090b0;
+    --text3: #5a5a78;
+    --accent: #7c6cff;
+    --accent2: #4fd1c5;
+    --accent3: #f6ad55;
+    --glow: rgba(124,108,255,0.15);
+    --radius: 12px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Background mesh ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(124,108,255,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(79,209,197,0.06) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── Nav ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 48px;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    font-size: 18px; font-weight: 800; letter-spacing: -0.03em;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .nav-links { display: flex; gap: 32px; }
+  .nav-links a {
+    color: var(--text2); text-decoration: none;
+    font-size: 14px; font-weight: 600; letter-spacing: 0.02em;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--text); }
+  .nav-links a.active { color: var(--accent); }
+  .nav-cta {
+    background: var(--accent); color: #fff;
+    padding: 9px 20px; border-radius: 8px;
+    text-decoration: none; font-size: 13px; font-weight: 700;
+    transition: opacity 0.2s;
+  }
+  .nav-cta:hover { opacity: 0.85; }
+
+  /* ── Hero ── */
+  .hero {
+    position: relative; z-index: 1;
+    padding: 120px 48px 80px;
+    max-width: 1100px; margin: 0 auto;
+  }
+  .hero-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(124,108,255,0.12); border: 1px solid rgba(124,108,255,0.25);
+    color: var(--accent); padding: 6px 14px; border-radius: 100px;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+  .hero-tag::before { content: '◆'; font-size: 8px; }
+  h1 {
+    font-size: clamp(42px, 7vw, 88px);
+    font-weight: 800; line-height: 1.0;
+    letter-spacing: -0.04em;
+    margin-bottom: 28px;
+  }
+  h1 em {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero-sub {
+    font-size: 18px; color: var(--text2); line-height: 1.6;
+    max-width: 540px; margin-bottom: 48px;
+    font-family: 'DM Mono', monospace; font-weight: 300;
+  }
+  .hero-actions { display: flex; gap: 16px; flex-wrap: wrap; }
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent); color: #fff;
+    padding: 14px 28px; border-radius: 10px;
+    text-decoration: none; font-size: 15px; font-weight: 700;
+    transition: all 0.2s; border: none; cursor: pointer;
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(124,108,255,0.4); }
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent; color: var(--text2);
+    padding: 14px 28px; border-radius: 10px;
+    text-decoration: none; font-size: 15px; font-weight: 600;
+    border: 1px solid var(--border); transition: all 0.2s;
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--text); }
+
+  /* ── Tools grid ── */
+  section { position: relative; z-index: 1; }
+  .section-header {
+    padding: 80px 48px 40px;
+    max-width: 1100px; margin: 0 auto;
+  }
+  .section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--accent2); margin-bottom: 12px;
+    font-family: 'DM Mono', monospace;
+  }
+  .section-title {
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 800; letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+
+  .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 0 48px 80px;
+    max-width: 1100px; margin: 0 auto;
+  }
+  .tool-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    transition: all 0.25s;
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+    position: relative;
+    overflow: hidden;
+  }
+  .tool-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, var(--glow), transparent);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .tool-card:hover { border-color: rgba(124,108,255,0.35); transform: translateY(-4px); }
+  .tool-card:hover::before { opacity: 1; }
+  .tool-icon {
+    width: 48px; height: 48px;
+    background: var(--bg3);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; margin-bottom: 20px;
+    border: 1px solid var(--border);
+  }
+  .tool-name {
+    font-size: 18px; font-weight: 700; color: var(--text);
+    margin-bottom: 8px; letter-spacing: -0.02em;
+  }
+  .tool-desc {
+    font-size: 13.5px; color: var(--text2); line-height: 1.6;
+    font-family: 'DM Mono', monospace; font-weight: 300;
+  }
+  .tool-tag {
+    display: inline-block; margin-top: 16px;
+    background: rgba(124,108,255,0.1); color: var(--accent);
+    padding: 4px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; font-family: 'DM Mono', monospace;
+  }
+  .tool-tag.green { background: rgba(79,209,197,0.1); color: var(--accent2); }
+  .tool-tag.orange { background: rgba(246,173,85,0.1); color: var(--accent3); }
+
+  /* ── Stats strip ── */
+  .stats-strip {
+    display: flex; gap: 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    margin: 0 0 80px;
+  }
+  .stat {
+    flex: 1; padding: 36px 48px;
+    border-right: 1px solid var(--border);
+  }
+  .stat:last-child { border-right: none; }
+  .stat-num {
+    font-size: 42px; font-weight: 800; letter-spacing: -0.04em;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 4px;
+  }
+  .stat-label { font-size: 13px; color: var(--text3); font-family: 'DM Mono', monospace; }
+
+  /* ── Footer ── */
+  footer {
+    position: relative; z-index: 1;
+    padding: 40px 48px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 16px;
+  }
+  .footer-logo {
+    font-size: 15px; font-weight: 800;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  footer a { color: var(--text3); text-decoration: none; font-size: 13px; font-family: 'DM Mono', monospace; }
+  footer a:hover { color: var(--text2); }
+  .footer-links { display: flex; gap: 24px; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .hero > * { animation: fadeUp 0.6s ease both; }
+  .hero > *:nth-child(1) { animation-delay: 0.05s; }
+  .hero > *:nth-child(2) { animation-delay: 0.12s; }
+  .hero > *:nth-child(3) { animation-delay: 0.2s; }
+  .hero > *:nth-child(4) { animation-delay: 0.28s; }
+
+  @media (max-width: 768px) {
+    nav { padding: 14px 20px; }
+    .nav-links { display: none; }
+    .hero { padding: 80px 20px 60px; }
+    .tools-grid { padding: 0 20px 60px; gap: 14px; }
+    .section-header { padding: 60px 20px 32px; }
+    .stats-strip { flex-direction: column; }
+    .stat { border-right: none; border-bottom: 1px solid var(--border); padding: 28px 20px; }
+    footer { padding: 28px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">tools.mapi85.fr</div>
+  <div class="nav-links">
+    <a href="/" class="active">Accueil</a>
+    <a href="/browsermind">BrowserMind</a>
+    <a href="/support">Soutenir</a>
+  </div>
+  <a href="/browsermind" class="nav-cta">Installer BrowserMind →</a>
+</nav>
+
+<div class="hero">
+  <div class="hero-tag">Outils IA & Automatisation</div>
+  <h1>Des outils qui<br/><em>pensent avec vous</em></h1>
+  <p class="hero-sub">Extensions, agents et utilitaires construits autour de l'IA pour naviguer, extraire et automatiser le web.</p>
+  <div class="hero-actions">
+    <a href="/browsermind" class="btn-primary">🧠 Découvrir BrowserMind</a>
+    <a href="/support" class="btn-ghost">☕ Soutenir le projet</a>
+  </div>
+</div>
+
+<div class="stats-strip">
+  <div class="stat">
+    <div class="stat-num">12+</div>
+    <div class="stat-label">modes contextuels</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">14</div>
+    <div class="stat-label">outils natifs</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">6</div>
+    <div class="stat-label">langues supportées</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">∞</div>
+    <div class="stat-label">outils extensibles</div>
+  </div>
+</div>
+
+<section>
+  <div class="section-header">
+    <div class="section-label">Projets disponibles</div>
+    <h2 class="section-title">Ce que vous pouvez<br/>faire aujourd'hui</h2>
+  </div>
+
+  <div class="tools-grid">
+
+    <a href="/browsermind" class="tool-card">
+      <div class="tool-icon">🧠</div>
+      <div class="tool-name">BrowserMind</div>
+      <div class="tool-desc">Extension Chrome avec IA intégrée. Naviguez, extrayez et automatisez le web en langage naturel depuis un panneau latéral.</div>
+      <span class="tool-tag">Extension Chrome</span>
+    </a>
+
+    <div class="tool-card" style="opacity:0.5;cursor:default">
+      <div class="tool-icon">📊</div>
+      <div class="tool-name">DataMind <small style="font-size:13px;color:var(--text3)">— bientôt</small></div>
+      <div class="tool-desc">Extraction et nettoyage de données tabulaires depuis n'importe quelle page web. Export CSV, JSON, Excel.</div>
+      <span class="tool-tag green">En développement</span>
+    </div>
+
+    <div class="tool-card" style="opacity:0.5;cursor:default">
+      <div class="tool-icon">🤖</div>
+      <div class="tool-name">AgentFlow <small style="font-size:13px;color:var(--text3)">— bientôt</small></div>
+      <div class="tool-desc">Orchestrateur d'agents IA pour automatiser des workflows multi-étapes sur le web sans coder.</div>
+      <span class="tool-tag orange">Roadmap</span>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">tools.mapi85.fr</div>
+  <div class="footer-links">
+    <a href="/browsermind">BrowserMind</a>
+    <a href="https://github.com" target="_blank">GitHub</a>
+    <a href="/support">Support</a>
+  </div>
+  <div style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace">
+    Fait avec ☕ par mapi85
+  </div>
+</footer>
+
+</body>
+</html>

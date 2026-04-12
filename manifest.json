@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "BrowserMind — AI Navigator",
+  "version": "6.0.0",
+  "description": "Pilotez votre navigateur avec un assistant IA via un panneau latéral. Modes contextuels pour Voyage, Recherche, Analyse, etc.",
+  "permissions": [
+    "alarms",
+    "sidePanel",
+    "activeTab",
+    "scripting",
+    "tabs",
+    "downloads",
+    "storage",
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "src/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "BrowserMind",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
