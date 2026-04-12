@@ -1,0 +1,30 @@
+# BrowserMind — .gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build / packaging artifacts
+*.zip
+*.crx
+*.pem
+
+# Node (if any tooling is added later)
+node_modules/
+npm-debug.log*
+
+# Publish drafts (keep .publish folder out of main repo if desired)
+# Uncomment the line below to exclude it:
+# .publish/
+
+# Local dev overrides
+*.local
+.env
+.env.*
