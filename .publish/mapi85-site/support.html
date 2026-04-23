@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Support — mapi.Tools</title>
+<link rel="stylesheet" href="shared.css"/>
+<style>
+.hero { padding: 56px 0 40px; text-align: center; }
+.hero h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 10px; }
+.hero p { font-size: 15px; color: var(--text2); max-width: 480px; margin: 0 auto; line-height: 1.6; }
+
+/* ── Payment tiles ── */
+.payment-grid {
+  display: flex; flex-wrap: wrap; gap: 20px;
+  justify-content: center; padding: 8px 0 64px;
+}
+.payment-tile {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 14px; padding: 28px 24px;
+  width: 300px; display: flex; flex-direction: column; gap: 14px;
+  box-shadow: var(--shadow);
+}
+.tile-head { display: flex; align-items: center; gap: 12px; }
+.tile-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+.tile-icon.green  { background: #dcfce7; }
+.tile-icon.blue   { background: #dbeafe; }
+.tile-icon.purple { background: var(--accent-light); }
+.tile-title { font-size: 16px; font-weight: 700; color: var(--text); }
+.tile-subtitle { font-size: 12px; color: var(--text3); margin-top: 1px; }
+.tile-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+.tile-body { display: flex; flex-direction: column; gap: 10px; }
+
+/* Nexo */
+.nexo-qr {
+  display: flex; justify-content: center;
+}
+.nexo-qr img { width: 100px; height: 100px; border-radius: 8px; border: 1px solid var(--border); }
+.btn-nexo {
+  display: block; text-align: center;
+  background: #4facff; color: #fff;
+  padding: 10px 16px; border-radius: var(--radius);
+  text-decoration: none; font-size: 14px; font-weight: 600;
+  transition: opacity 0.15s;
+}
+.btn-nexo:hover { opacity: 0.85; color: #fff; }
+.tile-note {
+  font-size: 11.5px; color: var(--text3); line-height: 1.55;
+  padding: 8px 10px; background: var(--bg2); border-radius: var(--radius-sm);
+}
+
+/* Plisio */
+.plisio-btn {
+  display: flex; justify-content: center;
+}
+.plisio-btn a { display: block; }
+.plisio-btn img {
+  width: 200px; height: auto;
+  border-radius: 8px; border: 1px solid var(--border);
+  transition: opacity 0.15s;
+}
+.plisio-btn a:hover img { opacity: 0.85; }
+
+/* Stripe */
+.stripe-wrap {
+  display: flex; justify-content: center;
+  padding: 4px 0;
+}
+
+/* ── Why section ── */
+.why { padding: 40px 0 64px; border-top: 1px solid var(--border); }
+.why h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 20px; }
+.why-list { display: flex; flex-direction: column; gap: 10px; }
+.why-item { display: flex; gap: 10px; align-items: flex-start; }
+.why-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; flex-shrink: 0; margin-top: 8px; }
+.why-text { font-size: 14px; color: var(--text2); line-height: 1.6; }
+.why-text strong { color: var(--text); }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a href="index.html" class="nav-brand">
+    <svg class="nav-brand-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="ng" x1="0%" y1="50%" x2="100%" y2="50%"><stop offset="0%" stop-color="#5b4ed8"/><stop offset="100%" stop-color="#7c6af7"/></linearGradient></defs>
+      <g transform="matrix(1.957278,0,0,1.948247,-36.835388,-22.991181)">
+        <rect y="11.918" width="51.157" height="51.157" rx="10" fill="url(#ng)" x="18.835"/>
+        <g transform="matrix(1,0,0,1,0.120825,0.761346)">
+          <path d="M 44.293 26.431 C 44.302 23.03 40.627 20.892 37.674 22.585 C 36.239 23.408 35.385 24.964 35.459 26.615 C 31.752 27.568 29.923 31.746 31.737 35.115 C 28.513 37.736 28.938 42.779 32.557 44.821 C 31.975 49.32 36.481 52.761 40.668 51.015 C 42.861 50.101 44.29 47.959 44.293 45.582 L 44.293 26.431 Z"/>
+          <path d="M 44.293 26.431 C 44.283 23.03 47.96 20.892 50.911 22.585 C 52.346 23.408 53.202 24.964 53.128 26.615 C 56.833 27.568 58.663 31.746 56.849 35.115 C 60.072 37.736 59.647 42.779 56.03 44.821 C 56.611 49.32 52.104 52.761 47.917 51.015 C 45.725 50.101 44.295 47.959 44.293 45.582 L 44.293 26.431 Z"/>
+          <path d="M 48.713 38.216 C 46.183 37.327 44.439 35.002 44.293 32.324 C 44.147 35.002 42.403 37.327 39.874 38.216"/>
+        </g>
+      </g>
+    </svg>
+    <span class="nav-brand-name">mapi<span>.Tools</span></span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="browsermind.html" class="nav-link">BrowserMind</a>
+    <a href="support.html" class="nav-link active">Support</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <div class="hero">
+    <h1>☕ Support the project (coming soon)</h1>
+    <p>BrowserMind is free and open-source. If the tool is useful to you, your support funds development time and new features.</p>
+  </div>
+
+  <!-- Why -->
+  <div class="why">
+    <h2>Why support?</h2>
+    <div class="why-list">
+      <div class="why-item"><div class="why-dot"></div><div class="why-text">This project is developed and maintained by <strong>one person</strong>, on my free time</div></div>
+      <div class="why-item"><div class="why-dot"></div><div class="why-text"><strong>No ads</strong>, no tracking, no data selling — and it will stay that way</div></div>
+      <div class="why-item"><div class="why-dot"></div><div class="why-text">Your support directly funds <strong>new features</strong> and bug fixes</div></div>
+      <div class="why-item"><div class="why-dot"></div><div class="why-text">Every contribution, even small, makes a real difference — <strong>thank you sincerely</strong> 🙏</div></div>
+    </div>
+  </div>
+
+</div>
+
+<footer class="site-footer page">
+  <a href="index.html" class="footer-brand">
+    <svg width="20" height="20" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="fg" x1="0%" y1="50%" x2="100%" y2="50%"><stop offset="0%" stop-color="#5b4ed8"/><stop offset="100%" stop-color="#7c6af7"/></linearGradient></defs>
+      <g transform="matrix(1.957278,0,0,1.948247,-36.835388,-22.991181)">
+        <rect y="11.918" width="51.157" height="51.157" rx="10" fill="url(#fg)" x="18.835"/>
+        <g transform="matrix(1,0,0,1,0.120825,0.761346)">
+          <path d="M 44.293 26.431 C 44.302 23.03 40.627 20.892 37.674 22.585 C 36.239 23.408 35.385 24.964 35.459 26.615 C 31.752 27.568 29.923 31.746 31.737 35.115 C 28.513 37.736 28.938 42.779 32.557 44.821 C 31.975 49.32 36.481 52.761 40.668 51.015 C 42.861 50.101 44.29 47.959 44.293 45.582 L 44.293 26.431 Z"/>
+          <path d="M 44.293 26.431 C 44.283 23.03 47.96 20.892 50.911 22.585 C 52.346 23.408 53.202 24.964 53.128 26.615 C 56.833 27.568 58.663 31.746 56.849 35.115 C 60.072 37.736 59.647 42.779 56.03 44.821 C 56.611 49.32 52.104 52.761 47.917 51.015 C 45.725 50.101 44.295 47.959 44.293 45.582 L 44.293 26.431 Z"/>
+          <path d="M 48.713 38.216 C 46.183 37.327 44.439 35.002 44.293 32.324 C 44.147 35.002 42.403 37.327 39.874 38.216"/>
+        </g>
+      </g>
+    </svg>
+    mapi.Tools
+  </a>
+  <div class="footer-links">
+    <a href="index.html">Home</a>
+    <a href="browsermind.html">BrowserMind</a>
+    <a href="https://github.com/mapi85/browsermind" target="_blank">GitHub</a>
+  </div>
+  <span class="footer-copy">Thank you for your support ☕</span>
+</footer>
+
+</body>
+</html>

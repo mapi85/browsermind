@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <title>BrowserMind</title>
+  <link rel="stylesheet" href="src/shared.css"/>
+  <link rel="stylesheet" href="src/sidepanel.css"/>
+</head>
+<body>
+
+<script src="src/lib/marked.min.js"></script>
+<script src="src/icons.js"></script>
+<script src="src/modes.js"></script>
+<script src="src/tools-registry.js"></script>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon" id="logo-icon"></div>
+    <span class="logo-text">BrowserMind</span>
+  </div>
+  <div class="header-actions">
+    <!-- #1 theme toggle always visible -->
+    <div class="theme-wrap" title="Thème clair/sombre">
+      <span class="icon-sm" id="theme-sun"></span>
+      <label class="toggle"><input type="checkbox" id="theme-toggle"><span class="toggle-slider"></span></label>
+      <span class="icon-sm" id="theme-moon"></span>
+    </div>
+    <button class="hbtn" id="bug-btn" title="Signaler un bug"></button>
+    <button class="hbtn" id="clear-btn" title="Nouveau chat"></button>
+    <button class="hbtn" id="config-btn" title="Configuration"></button>
+  </div>
+</header>
+
+<!-- Bandeau synthétique (visible quand replié) -->
+<div id="header-summary" class="header-summary hidden">
+  <span id="summary-provider"></span>
+  <span class="summary-sep">·</span>
+  <span id="summary-mode"></span>
+  <span class="summary-sep">·</span>
+  <span id="summary-tab"></span>
+  <span class="summary-sep">·</span>
+  <span id="summary-status"></span>
+  <button class="hbtn summary-toggle-btn" id="collapse-btn-summary" title="Déplier le bandeau"></button>
+</div>
+
+<!-- Bandeau complet (rétractable) -->
+<div id="header-full">
+<div class="header-full-topbar">
+  <button class="hbtn header-full-collapse-btn" id="collapse-btn" title="Replier le bandeau"></button>
+</div>
+
+<!-- Provider + Model selectors -->
+<div id="provider-bar">
+  <span class="provider-label" data-i18n="provider">Provider</span>
+  <select id="provider-select"></select>
+  <select id="model-select" title="Modèle"></select>
+</div>
+
+<!-- Mode selector -->
+<div id="mode-bar">
+  <div class="mode-label" data-i18n="mode">Mode</div>
+  <div class="mode-chips" id="mode-chips"></div>
+</div>
+
+<!-- Per-tab chat tabs -->
+<div id="tab-bar"><!-- injected by JS --></div>
+
+<!-- API key banner -->
+<div id="api-banner">
+  <div class="api-banner-label">🔑 Clé API manquante pour <span id="banner-provider"></span> — <button type="button" data-action="open-config" style="color:var(--accent2);padding:0;border:none;background:none;font:inherit;cursor:pointer">configurer ⚙</button></div>
+</div>
+
+<!-- Status -->
+<div id="status-bar">
+  <div class="sdot" id="sdot"></div>
+  <span id="status-text" data-i18n="statusReady">Prêt</span>
+</div>
+
+</div><!-- /header-full -->
+
+<!-- Messages -->
+<div id="messages">
+  <div class="empty-state" id="empty-state">
+    <div class="empty-icon" id="empty-icon"></div>
+    <div class="empty-text">Décrivez ce que vous souhaitez faire.<br>L'agent naviguera pour vous.</div>
+  </div>
+</div>
+
+<!-- Quick actions -->
+<div id="quick-actions"></div>
+
+<!-- Input -->
+<div id="input-area">
+  <textarea id="prompt-input" rows="2" placeholder="Que voulez-vous faire sur cette page ?"></textarea>
+  <div class="input-footer">
+    <span class="input-hint" id="input-hint"></span>
+    <div class="input-btns">
+      <button id="stop-btn"></button>
+      <button class="btn btn-primary" id="send-btn"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Bug panel (overlay) -->
+<div id="bug-panel">
+  <div class="bug-title" id="bug-title"></div>
+  <div class="field">
+    <label class="field-label">Description</label>
+    <textarea id="bug-desc" style="min-height:60px" placeholder="Décrivez ce qui s'est passé..."></textarea>
+  </div>
+  <div class="field">
+    <label class="field-label">Log capturé</label>
+    <div class="bug-log" id="bug-log"></div>
+  </div>
+  <div class="bug-hint" id="bug-hint"></div>
+  <div style="display:flex;gap:7px">
+    <button class="btn btn-danger" id="bug-copy-btn" style="flex:1"></button>
+    <button class="btn btn-ghost" id="bug-close-btn">Fermer</button>
+  </div>
+</div>
+
+<!-- Footer with credits -->
+<footer id="app-footer">
+  <a href="https://tools.mapi85.fr" target="_blank" rel="noopener">tools.mapi85.fr</a>
+  <span>·</span>
+    <a href="https://tools.mapi85.fr#support" target="_blank" rel="noopener" data-i18n="footerSupport">☕ Soutenir</a>
+</footer>
+
+<script src="src/sidepanel.js"></script>
+</body>
+</html>

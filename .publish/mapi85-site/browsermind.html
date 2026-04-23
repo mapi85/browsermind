@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BrowserMind — mapi.Tools</title>
+<link rel="stylesheet" href="shared.css"/>
+<style>
+/* ── Hero ── */
+.hero {
+  padding: 56px 0 48px;
+  display: grid; grid-template-columns: 1fr auto; gap: 48px; align-items: start;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--accent-light); color: var(--accent);
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; margin-bottom: 18px;
+}
+.hero h1 {
+  font-size: 36px; font-weight: 700; letter-spacing: -0.03em;
+  line-height: 1.15; margin-bottom: 14px;
+}
+.hero-sub {
+  font-size: 15px; color: var(--text2); line-height: 1.65;
+  max-width: 500px; margin-bottom: 28px;
+}
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn-main {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--accent); color: #fff;
+  padding: 10px 22px; border-radius: var(--radius);
+  font-size: 14px; font-weight: 600; text-decoration: none;
+  transition: background 0.15s;
+}
+.btn-main:hover { background: var(--accent2); color: #fff; }
+.btn-out {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--bg2); color: var(--text2);
+  padding: 10px 22px; border-radius: var(--radius);
+  font-size: 14px; font-weight: 600; text-decoration: none;
+  border: 1px solid var(--border); transition: all 0.15s;
+}
+.btn-out:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Panel mockup ── */
+.panel-preview {
+  width: 300px; flex-shrink: 0;
+  background: #1a1a24; border-radius: 14px;
+  overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: var(--shadow-md);
+  font-family: 'JetBrains Mono', monospace;
+}
+.pm-header {
+  background: #22222e; padding: 10px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.pm-title { font-size: 12px; font-weight: 700; color: #f0f0f8; display: flex; align-items: center; gap: 8px; }
+.pm-title svg { width: 20px; height: 20px; }
+.pm-chips { display: flex; gap: 4px; padding: 7px 10px; background: #22222e; border-bottom: 1px solid rgba(255,255,255,0.07); flex-wrap: wrap; }
+.pm-chip { padding: 3px 8px; border-radius: 5px; font-size: 10px; font-weight: 600; background: #2e2e3e; color: #707090; }
+.pm-chip.on { background: #5b4ed8; color: #fff; }
+.pm-msgs { padding: 12px; display: flex; flex-direction: column; gap: 8px; min-height: 140px; }
+.pm-user { align-self: flex-end; background: rgba(91,78,216,0.2); border: 1px solid rgba(91,78,216,0.3); border-radius: 9px 9px 2px 9px; padding: 7px 11px; font-size: 11px; color: #d0d0f0; max-width: 90%; }
+.pm-act { font-size: 10px; color: #c09a40; padding: 5px 8px; background: rgba(246,173,85,0.08); border: 1px solid rgba(246,173,85,0.2); border-radius: 5px; }
+.pm-agent { align-self: flex-start; background: #22222e; border: 1px solid rgba(255,255,255,0.07); border-radius: 2px 9px 9px 9px; padding: 7px 11px; font-size: 11px; color: #9090b0; max-width: 90%; }
+.pm-input { padding: 10px; border-top: 1px solid rgba(255,255,255,0.07); display: flex; gap: 6px; }
+.pm-input-bar { flex: 1; background: #22222e; border: 1px solid rgba(255,255,255,0.07); border-radius: 6px; padding: 7px 10px; font-size: 10.5px; color: #5a5a78; }
+.pm-send { background: #5b4ed8; border: none; border-radius: 6px; width: 28px; height: 28px; color: #fff; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+/* ── Sections ── */
+.section { padding: 48px 0; border-top: 1px solid var(--border); }
+.section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+.section h2 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 24px; }
+
+/* ── Feature grid ── */
+.feat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+.feat {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px;
+}
+.feat-icon { font-size: 22px; margin-bottom: 10px; }
+.feat-title { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+.feat-desc { font-size: 12.5px; color: var(--text2); line-height: 1.55; }
+
+/* ── Tools list ── */
+.tools-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+.tool-row {
+  display: flex; gap: 11px; align-items: flex-start;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 13px 16px;
+}
+.tool-em { width: 30px; height: 30px; background: var(--accent-light); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.tool-name { font-size: 13px; font-weight: 600; color: var(--text); font-family: 'JetBrains Mono', monospace; }
+.tool-desc { font-size: 11.5px; color: var(--text3); margin-top: 1px; }
+
+/* ── Builder ── */
+.builder-box {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 32px;
+}
+.builder-box h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.builder-box p { font-size: 13.5px; color: var(--text2); line-height: 1.6; margin-bottom: 18px; }
+.schema-tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0; }
+.schema-tbl th { text-align: left; padding: 8px 12px; background: var(--bg3); color: var(--text2); font-weight: 600; font-size: 12px; border-bottom: 1px solid var(--border); }
+.schema-tbl td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text2); vertical-align: top; }
+.schema-tbl td:first-child { font-family: 'JetBrains Mono', monospace; color: #5b4ed8; font-size: 12px; }
+.schema-tbl td:nth-child(2) { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text3); }
+.badge-r { display: inline-block; background: #fee2e2; color: #dc2626; padding: 1px 6px; border-radius: 4px; font-size: 10.5px; font-family: 'JetBrains Mono', monospace; }
+.badge-o { display: inline-block; background: var(--accent-light); color: var(--accent); padding: 1px 6px; border-radius: 4px; font-size: 10.5px; font-family: 'JetBrains Mono', monospace; }
+.code-box {
+  background: #1a1a24; color: #d0d0f0; border-radius: var(--radius);
+  padding: 18px 20px; font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; line-height: 1.75; overflow-x: auto; margin: 14px 0;
+}
+.ck { color: #7c6af7; } .cv { color: #4fd1c5; } .cs { color: #fbbf24; } .cc { color: #6b7280; font-style: italic; }
+
+/* ── Registry ── */
+.registry-box {
+  background: #f0edff; border: 1px solid #c4b8f7;
+  border-radius: 14px; padding: 28px 32px;
+}
+.registry-box h3 { font-size: 18px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+.registry-box p { font-size: 13.5px; color: var(--text2); line-height: 1.6; margin-bottom: 16px; }
+.steps { display: flex; flex-direction: column; gap: 12px; }
+.step { display: flex; gap: 12px; align-items: flex-start; }
+.step-n { width: 24px; height: 24px; background: var(--accent); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.step-t { font-size: 13.5px; color: var(--text2); padding-top: 2px; line-height: 1.5; }
+.step-t strong { color: var(--text); }
+
+@media (max-width: 800px) {
+  .hero { grid-template-columns: 1fr; }
+  .panel-preview { display: none; }
+  .feat-grid { grid-template-columns: 1fr 1fr; }
+  .tools-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 500px) {
+  .feat-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a href="index.html" class="nav-brand">
+    <svg class="nav-brand-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="ng" x1="0%" y1="50%" x2="100%" y2="50%"><stop offset="0%" stop-color="#5b4ed8"/><stop offset="100%" stop-color="#7c6af7"/></linearGradient></defs>
+      <g transform="matrix(1.957278,0,0,1.948247,-36.835388,-22.991181)">
+        <rect y="11.918" width="51.157" height="51.157" rx="10" fill="url(#ng)" x="18.835"/>
+        <g transform="matrix(1,0,0,1,0.120825,0.761346)">
+          <path d="M 44.293 26.431 C 44.302 23.03 40.627 20.892 37.674 22.585 C 36.239 23.408 35.385 24.964 35.459 26.615 C 31.752 27.568 29.923 31.746 31.737 35.115 C 28.513 37.736 28.938 42.779 32.557 44.821 C 31.975 49.32 36.481 52.761 40.668 51.015 C 42.861 50.101 44.29 47.959 44.293 45.582 L 44.293 26.431 Z"/>
+          <path d="M 44.293 26.431 C 44.283 23.03 47.96 20.892 50.911 22.585 C 52.346 23.408 53.202 24.964 53.128 26.615 C 56.833 27.568 58.663 31.746 56.849 35.115 C 60.072 37.736 59.647 42.779 56.03 44.821 C 56.611 49.32 52.104 52.761 47.917 51.015 C 45.725 50.101 44.295 47.959 44.293 45.582 L 44.293 26.431 Z"/>
+          <path d="M 48.713 38.216 C 46.183 37.327 44.439 35.002 44.293 32.324 C 44.147 35.002 42.403 37.327 39.874 38.216"/>
+        </g>
+      </g>
+    </svg>
+    <span class="nav-brand-name">mapi<span>.Tools</span></span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="browsermind.html" class="nav-link active">BrowserMind</a>
+    <a href="support.html" class="nav-link">Support</a>
+    <a href="https://chromewebstore.google.com" class="nav-btn" target="_blank">Install →</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div>
+      <div class="hero-badge">Chrome Extension · Manifest V3</div>
+      <h1>Your AI assistant<br/>in the browser</h1>
+      <p class="hero-sub">BrowserMind installs in Chrome's side panel. Describe what you want to do — it navigates, clicks, extracts, and generates files for you.</p>
+      <div class="hero-actions">
+        <a href="https://chromewebstore.google.com" class="btn-main" target="_blank">🔌 Install on Chrome</a>
+        <a href="https://github.com/mapi85/browsermind" class="btn-out" target="_blank">⭐ GitHub</a>
+      </div>
+    </div>
+    <div class="panel-preview">
+      <div class="pm-header">
+        <div class="pm-title">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <defs><linearGradient id="pg" x1="0%" y1="50%" x2="100%" y2="50%"><stop offset="0%" stop-color="#5b4ed8"/><stop offset="100%" stop-color="#7c6af7"/></linearGradient></defs>
+            <g transform="matrix(1.957278,0,0,1.948247,-36.835388,-22.991181)">
+              <rect y="11.918" width="51.157" height="51.157" rx="10" fill="url(#pg)" x="18.835"/>
+              <g transform="matrix(1,0,0,1,0.120825,0.761346)">
+                <path d="M 44.293 26.431 C 44.302 23.03 40.627 20.892 37.674 22.585 C 36.239 23.408 35.385 24.964 35.459 26.615 C 31.752 27.568 29.923 31.746 31.737 35.115 C 28.513 37.736 28.938 42.779 32.557 44.821 C 31.975 49.32 36.481 52.761 40.668 51.015 C 42.861 50.101 44.29 47.959 44.293 45.582 L 44.293 26.431 Z"/>
+                <path d="M 44.293 26.431 C 44.283 23.03 47.96 20.892 50.911 22.585 C 52.346 23.408 53.202 24.964 53.128 26.615 C 56.833 27.568 58.663 31.746 56.849 35.115 C 60.072 37.736 59.647 42.779 56.03 44.821 C 56.611 49.32 52.104 52.761 47.917 51.015 C 45.725 50.101 44.295 47.959 44.293 45.582 L 44.293 26.431 Z"/>
+                <path d="M 48.713 38.216 C 46.183 37.327 44.439 35.002 44.293 32.324 C 44.147 35.002 42.403 37.327 39.874 38.216"/>
+              </g>
+            </g>
+          </svg>
+          BrowserMind
+        </div>
+      </div>
+      <div class="pm-chips">
+        <div class="pm-chip on">🧭 Free</div>
+        <div class="pm-chip">🔍 Search</div>
+        <div class="pm-chip">📊 Analyze</div>
+      </div>
+      <div class="pm-msgs">
+        <div class="pm-user">Extract prices to CSV</div>
+        <div class="pm-act">📤 extract_data · table → csv</div>
+        <div class="pm-agent">24 products extracted. Generating file...</div>
+        <div class="pm-act">💾 prices-2024-04-13.csv ✅</div>
+      </div>
+      <div class="pm-input">
+        <div class="pm-input-bar">What do you want to do?</div>
+        <button class="pm-send">↗</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <div class="section">
+    <div class="section-label">Features</div>
+    <h2>What it can do</h2>
+    <div class="feat-grid">
+      <div class="feat"><div class="feat-icon">🎯</div><div class="feat-title">12 contextual modes</div><div class="feat-desc">Travel, Search, Shopping, Real Estate, Jobs... The mode adapts automatically to the URL.</div></div>
+      <div class="feat"><div class="feat-icon">🔧</div><div class="feat-title">14 native tools</div><div class="feat-desc">Click, type, scroll, extract data, generate files, take screenshots...</div></div>
+      <div class="feat"><div class="feat-icon">🌐</div><div class="feat-title">Multi-providers</div><div class="feat-desc">Anthropic, OpenAI, xAI, Mistral, DeepSeek, Gemini, Ollama, OpenRouter and more.</div></div>
+      <div class="feat"><div class="feat-icon">🧩</div><div class="feat-title">Extensible tools</div><div class="feat-desc">Create your own tools or load a remote registry from a URL, without reinstalling.</div></div>
+      <div class="feat"><div class="feat-icon">🗂️</div><div class="feat-title">Multi-tabs</div><div class="feat-desc">Isolated conversations per tab. Up to 10 simultaneous sessions with dedicated history.</div></div>
+      <div class="feat"><div class="feat-icon">💾</div><div class="feat-title">File exports</div><div class="feat-desc">CSV, HTML, JSON, Markdown, TXT with timestamped filenames. Direct download.</div></div>
+    </div>
+  </div>
+
+  <!-- Native tools -->
+  <div class="section">
+    <div class="section-label">Native tools</div>
+    <h2>What the AI can do on the page</h2>
+    <div class="tools-grid">
+      <div class="tool-row"><div class="tool-em">📄</div><div><div class="tool-name">get_page_content</div><div class="tool-desc">Reads the full content of the active page</div></div></div>
+      <div class="tool-row"><div class="tool-em">👆</div><div><div class="tool-name">click</div><div class="tool-desc">Clicks on an element (CSS, text or XPath)</div></div></div>
+      <div class="tool-row"><div class="tool-em">⌨️</div><div><div class="tool-name">type_text</div><div class="tool-desc">Types text into a field</div></div></div>
+      <div class="tool-row"><div class="tool-em">↕️</div><div><div class="tool-name">scroll</div><div class="tool-desc">Scrolls the page in the desired direction</div></div></div>
+      <div class="tool-row"><div class="tool-em">🌐</div><div><div class="tool-name">navigate</div><div class="tool-desc">Navigates to a URL in the active tab</div></div></div>
+      <div class="tool-row"><div class="tool-em">📝</div><div><div class="tool-name">fill_form</div><div class="tool-desc">Fills multiple fields in a single call</div></div></div>
+      <div class="tool-row"><div class="tool-em">📤</div><div><div class="tool-name">extract_data</div><div class="tool-desc">Extracts tables, lists, links, images</div></div></div>
+      <div class="tool-row"><div class="tool-em">💾</div><div><div class="tool-name">generate_document</div><div class="tool-desc">Generates and downloads CSV / HTML / JSON / MD / TXT</div></div></div>
+      <div class="tool-row"><div class="tool-em">⬇️</div><div><div class="tool-name">download_file</div><div class="tool-desc">Downloads a file from a URL</div></div></div>
+      <div class="tool-row"><div class="tool-em">⏳</div><div><div class="tool-name">wait</div><div class="tool-desc">Waits for an element or a delay in ms</div></div></div>
+      <div class="tool-row"><div class="tool-em">📸</div><div><div class="tool-name">take_screenshot</div><div class="tool-desc">Captures the visible page as timestamped PNG</div></div></div>
+      <div class="tool-row"><div class="tool-em">🔌</div><div><div class="tool-name">api_call</div><div class="tool-desc">Nominatim, OpenMeteo, DuckDuckGo, Wikidata...</div></div></div>
+      <div class="tool-row"><div class="tool-em">🔍</div><div><div class="tool-name">web_search</div><div class="tool-desc">Web search without leaving the current page</div></div></div>
+      <div class="tool-row"><div class="tool-em">🗂️</div><div><div class="tool-name">new_tab</div><div class="tool-desc">Opens a URL in a new tab</div></div></div>
+    </div>
+  </div>
+
+  <!-- Custom tool builder -->
+  <div class="section">
+    <div class="section-label">Extensibility</div>
+    <h2>Create your own tool</h2>
+    <div class="builder-box">
+      <h3>JSON format of a custom tool</h3>
+      <p>A BrowserMind tool is a JSON object that describes what the LLM can ask the extension to do. The <strong>description</strong> is read by the AI — be precise and concise.</p>
+
+      <table class="schema-tbl">
+        <thead><tr><th>Field</th><th>Type</th><th>Status</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>name</td><td>string</td><td><span class="badge-r">required</span></td><td>Unique <code>snake_case</code> identifier. Ex: <code>extract_emails</code></td></tr>
+          <tr><td>icon</td><td>string</td><td><span class="badge-o">optional</span></td><td>Emoji displayed in the UI. Ex: <code>📧</code></td></tr>
+          <tr><td>label</td><td>string</td><td><span class="badge-o">optional</span></td><td>Short name displayed in the tools list</td></tr>
+          <tr><td>description</td><td>string</td><td><span class="badge-r">required</span></td><td>Text read by the LLM to decide whether to use this tool</td></tr>
+          <tr><td>input_schema</td><td>object</td><td><span class="badge-r">required</span></td><td>JSON Schema of the parameters. Minimum: <code>{"type":"object","properties":{}}</code></td></tr>
+          <tr><td>executor</td><td>string</td><td><span class="badge-o">optional</span></td><td><code>inject</code> · <code>web_search_ext</code> · <code>generate_document_ext</code> · <code>api_call_ext</code></td></tr>
+          <tr><td>injectScript</td><td>string</td><td><span class="badge-o">if inject</span></td><td>JS function body executed in the page. Receives <code>input</code>, must return an object.</td></tr>
+        </tbody>
+      </table>
+
+      <h3 style="font-size:16px;margin:24px 0 10px">Example — Email Extractor</h3>
+      <div class="code-box"><span class="ck">{</span>
+  <span class="cs">"name"</span>: <span class="cv">"extract_emails"</span>,
+  <span class="cs">"icon"</span>: <span class="cv">"📧"</span>,  <span class="cs">"label"</span>: <span class="cv">"Extract emails"</span>,
+  <span class="cs">"description"</span>: <span class="cv">"Extracts all visible emails from the current page."</span>,
+  <span class="cs">"input_schema"</span>: <span class="ck">{ "type": "object", "properties": {}, "required": [] }</span>,
+  <span class="cs">"executor"</span>: <span class="cv">"inject"</span>,
+  <span class="cs">"injectScript"</span>: <span class="cv">"const m=[...document.body.innerText.matchAll(/[\\w.-]+@[\\w.-]+\\.[a-z]{2,}/gi)].map(m=&gt;m[0]); return {emails:[...new Set(m)]};"</span>
+<span class="ck">}</span></div>
+    </div>
+  </div>
+
+  <!-- Remote registry -->
+  <div class="section">
+    <div class="section-label">Remote registry</div>
+    <h2>Share your tools</h2>
+    <div class="registry-box">
+      <h3>📡 How it works?</h3>
+      <p>Publish a JSON file on your site. Your users load it via a URL in BrowserMind — the tools are added without reinstalling the extension. When you update the file, they get the changes on next startup.</p>
+      <div class="steps">
+        <div class="step"><div class="step-n">1</div><div class="step-t">Create a <strong>browsermind-tools.json</strong> file with your tools array</div></div>
+        <div class="step"><div class="step-n">2</div><div class="step-t">Publish it with the header <strong><code>Access-Control-Allow-Origin: *</code></strong></div></div>
+        <div class="step"><div class="step-n">3</div><div class="step-t">In BrowserMind → Config → Tools → URL → <strong>↻ Load</strong></div></div>
+        <div class="step"><div class="step-n">4</div><div class="step-t">Tools are <strong>cached locally</strong> and refreshed on next startup</div></div>
+      </div>
+      <div class="code-box" style="margin-top:16px"><span class="cc">// JSON file structure</span>
+<span class="ck">{</span>
+  <span class="cs">"version"</span>: <span class="cv">"1.0"</span>,  <span class="cs">"author"</span>: <span class="cv">"your-name"</span>,
+  <span class="cs">"tools"</span>: <span class="ck">[ { </span><span class="cc">/* tool 1 */</span><span class="ck"> }, { </span><span class="cc">/* tool 2 */</span><span class="ck"> } ]</span>
+<span class="ck">}</span></div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div style="text-align:center;padding:56px 0 64px;border-top:1px solid var(--border)">
+    <h2 style="font-size:28px;font-weight:700;letter-spacing:-.02em;margin-bottom:10px">Ready to try?</h2>
+    <p style="color:var(--text2);margin-bottom:28px">Free, open-source, works with your own API key.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a href="https://chromewebstore.google.com" class="btn-main" target="_blank">🔌 Install on Chrome</a>
+      <a href="support.html" class="btn-out">☕ Support the project</a>
+    </div>
+  </div>
+
+</div>
+
+<footer class="site-footer page">
+  <a href="index.html" class="footer-brand">
+    <svg width="20" height="20" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="fg" x1="0%" y1="50%" x2="100%" y2="50%"><stop offset="0%" stop-color="#5b4ed8"/><stop offset="100%" stop-color="#7c6af7"/></linearGradient></defs>
+      <g transform="matrix(1.957278,0,0,1.948247,-36.835388,-22.991181)">
+        <rect y="11.918" width="51.157" height="51.157" rx="10" fill="url(#fg)" x="18.835"/>
+        <g transform="matrix(1,0,0,1,0.120825,0.761346)">
+          <path d="M 44.293 26.431 C 44.302 23.03 40.627 20.892 37.674 22.585 C 36.239 23.408 35.385 24.964 35.459 26.615 C 31.752 27.568 29.923 31.746 31.737 35.115 C 28.513 37.736 28.938 42.779 32.557 44.821 C 31.975 49.32 36.481 52.761 40.668 51.015 C 42.861 50.101 44.29 47.959 44.293 45.582 L 44.293 26.431 Z"/>
+          <path d="M 44.293 26.431 C 44.283 23.03 47.96 20.892 50.911 22.585 C 52.346 23.408 53.202 24.964 53.128 26.615 C 56.833 27.568 58.663 31.746 56.849 35.115 C 60.072 37.736 59.647 42.779 56.03 44.821 C 56.611 49.32 52.104 52.761 47.917 51.015 C 45.725 50.101 44.295 47.959 44.293 45.582 L 44.293 26.431 Z"/>
+          <path d="M 48.713 38.216 C 46.183 37.327 44.439 35.002 44.293 32.324 C 44.147 35.002 42.403 37.327 39.874 38.216"/>
+        </g>
+      </g>
+    </svg>
+    mapi.Tools
+  </a>
+  <div class="footer-links">
+    <a href="index.html">Home</a>
+    <a href="https://github.com/mapi85/browsermind" target="_blank">GitHub</a>
+    <a href="support.html">Support</a>
+  </div>
+  <span class="footer-copy">Made with ☕ by mapi85</span>
+</footer>
+
+</body>
+</html>

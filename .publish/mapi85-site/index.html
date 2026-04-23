@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>mapi.Tools — AI & Automation Tools</title>
+<link rel="stylesheet" href="shared.css"/>
+<style>
+.hero { padding: 64px 0 48px; text-align: center; }
+.hero h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 10px; }
+.hero p { font-size: 15px; color: var(--text2); max-width: 440px; margin: 0 auto; }
+
+.apps-grid { display: flex; flex-wrap: wrap; gap: 22px; justify-content: center; padding-bottom: 64px; }
+
+.app-tile {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 14px;
+  padding: 26px 22px; width: 270px;
+  display: flex; flex-direction: column; gap: 12px;
+  box-shadow: var(--shadow); transition: all 0.18s;
+  text-decoration: none; color: inherit;
+}
+.app-tile:hover { box-shadow: var(--shadow-md); border-color: var(--accent); transform: translateY(-3px); color: inherit; }
+.app-tile-header { display: flex; align-items: center; gap: 13px; }
+.app-icon { width: 48px; height: 48px; flex-shrink: 0; }
+.app-tile-name { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
+.app-tile-version { font-size: 11px; color: var(--text3); font-family: 'JetBrains Mono', monospace; background: var(--bg3); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 2px; }
+.app-tile-desc { font-size: 13px; color: var(--text2); line-height: 1.55; }
+.app-tile-footer { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); }
+.tags { display: flex; gap: 5px; flex-wrap: wrap; }
+.tag { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 4px; background: var(--accent-light); color: var(--accent); }
+.arrow { color: var(--accent); font-size: 16px; }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a href="index.html" class="nav-brand">
+    <svg class="nav-brand-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="ng" x1="0%" y1="50%" x2="100%" y2="50%"><stop offset="0%" stop-color="#5b4ed8"/><stop offset="100%" stop-color="#7c6af7"/></linearGradient></defs>
+      <g transform="matrix(1.957278,0,0,1.948247,-36.835388,-22.991181)">
+        <rect y="11.918" width="51.157" height="51.157" rx="10" fill="url(#ng)" x="18.835"/>
+        <g transform="matrix(1,0,0,1,0.120825,0.761346)">
+          <path d="M 44.293 26.431 C 44.302 23.03 40.627 20.892 37.674 22.585 C 36.239 23.408 35.385 24.964 35.459 26.615 C 31.752 27.568 29.923 31.746 31.737 35.115 C 28.513 37.736 28.938 42.779 32.557 44.821 C 31.975 49.32 36.481 52.761 40.668 51.015 C 42.861 50.101 44.29 47.959 44.293 45.582 L 44.293 26.431 Z"/>
+          <path d="M 44.293 26.431 C 44.283 23.03 47.96 20.892 50.911 22.585 C 52.346 23.408 53.202 24.964 53.128 26.615 C 56.833 27.568 58.663 31.746 56.849 35.115 C 60.072 37.736 59.647 42.779 56.03 44.821 C 56.611 49.32 52.104 52.761 47.917 51.015 C 45.725 50.101 44.295 47.959 44.293 45.582 L 44.293 26.431 Z"/>
+          <path d="M 48.713 38.216 C 46.183 37.327 44.439 35.002 44.293 32.324 C 44.147 35.002 42.403 37.327 39.874 38.216"/>
+        </g>
+      </g>
+    </svg>
+    <span class="nav-brand-name">mapi<span>.Tools</span></span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link active">Home</a>
+    <a href="browsermind.html" class="nav-link">BrowserMind</a>
+    <a href="support.html" class="nav-link">Support</a>
+    <a href="support.html" class="nav-btn">☕ Support</a>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="hero">
+    <h1>AI &amp; Automation Tools</h1>
+    <p>Extensions built around AI to make better use of the web every day.</p>
+  </div>
+
+  <div class="apps-grid">
+    <a href="browsermind.html" class="app-tile">
+      <div class="app-tile-header">
+        <svg class="app-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <defs><linearGradient id="ag" x1="0%" y1="50%" x2="100%" y2="50%"><stop offset="0%" stop-color="#5b4ed8"/><stop offset="100%" stop-color="#7c6af7"/></linearGradient></defs>
+          <g transform="matrix(1.957278,0,0,1.948247,-36.835388,-22.991181)">
+            <rect y="11.918" width="51.157" height="51.157" rx="10" fill="url(#ag)" x="18.835"/>
+            <g transform="matrix(1,0,0,1,0.120825,0.761346)">
+              <path d="M 44.293 26.431 C 44.302 23.03 40.627 20.892 37.674 22.585 C 36.239 23.408 35.385 24.964 35.459 26.615 C 31.752 27.568 29.923 31.746 31.737 35.115 C 28.513 37.736 28.938 42.779 32.557 44.821 C 31.975 49.32 36.481 52.761 40.668 51.015 C 42.861 50.101 44.29 47.959 44.293 45.582 L 44.293 26.431 Z"/>
+              <path d="M 44.293 26.431 C 44.283 23.03 47.96 20.892 50.911 22.585 C 52.346 23.408 53.202 24.964 53.128 26.615 C 56.833 27.568 58.663 31.746 56.849 35.115 C 60.072 37.736 59.647 42.779 56.03 44.821 C 56.611 49.32 52.104 52.761 47.917 51.015 C 45.725 50.101 44.295 47.959 44.293 45.582 L 44.293 26.431 Z"/>
+              <path d="M 48.713 38.216 C 46.183 37.327 44.439 35.002 44.293 32.324 C 44.147 35.002 42.403 37.327 39.874 38.216"/>
+            </g>
+          </g>
+        </svg>
+        <div>
+          <div class="app-tile-name">BrowserMind</div>
+          <span class="app-tile-version">v1.0 · Chrome</span>
+        </div>
+      </div>
+      <p class="app-tile-desc">AI assistant in your Chrome side panel. Navigate, extract and automate the web using natural language.</p>
+      <div class="app-tile-footer">
+        <div class="tags">
+          <span class="tag">Extension</span>
+          <span class="tag">AI</span>
+          <span class="tag">Free</span>
+        </div>
+        <span class="arrow">→</span>
+      </div>
+    </a>
+  </div>
+</div>
+
+<footer class="site-footer page">
+  <a href="index.html" class="footer-brand">
+    <svg width="20" height="20" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="fg" x1="0%" y1="50%" x2="100%" y2="50%"><stop offset="0%" stop-color="#5b4ed8"/><stop offset="100%" stop-color="#7c6af7"/></linearGradient></defs>
+      <g transform="matrix(1.957278,0,0,1.948247,-36.835388,-22.991181)">
+        <rect y="11.918" width="51.157" height="51.157" rx="10" fill="url(#fg)" x="18.835"/>
+        <g transform="matrix(1,0,0,1,0.120825,0.761346)">
+          <path d="M 44.293 26.431 C 44.302 23.03 40.627 20.892 37.674 22.585 C 36.239 23.408 35.385 24.964 35.459 26.615 C 31.752 27.568 29.923 31.746 31.737 35.115 C 28.513 37.736 28.938 42.779 32.557 44.821 C 31.975 49.32 36.481 52.761 40.668 51.015 C 42.861 50.101 44.29 47.959 44.293 45.582 L 44.293 26.431 Z"/>
+          <path d="M 44.293 26.431 C 44.283 23.03 47.96 20.892 50.911 22.585 C 52.346 23.408 53.202 24.964 53.128 26.615 C 56.833 27.568 58.663 31.746 56.849 35.115 C 60.072 37.736 59.647 42.779 56.03 44.821 C 56.611 49.32 52.104 52.761 47.917 51.015 C 45.725 50.101 44.295 47.959 44.293 45.582 L 44.293 26.431 Z"/>
+          <path d="M 48.713 38.216 C 46.183 37.327 44.439 35.002 44.293 32.324 C 44.147 35.002 42.403 37.327 39.874 38.216"/>
+        </g>
+      </g>
+    </svg>
+    mapi.Tools
+  </a>
+  <div class="footer-links">
+    <a href="browsermind.html">BrowserMind</a>
+    <a href="https://github.com/mapi85/browsermind" target="_blank">GitHub</a>
+    <a href="support.html">Support</a>
+  </div>
+  <span class="footer-copy">Made with ☕ by mapi85</span>
+</footer>
+
+</body>
+</html>

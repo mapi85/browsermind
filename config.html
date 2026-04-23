@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <title>BrowserMind — Configuration</title>
+  <link rel="stylesheet" href="src/shared.css"/>
+  <link rel="stylesheet" href="src/config.css"/>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo-icon" id="logo-icon-config"></div>
+    <span class="topbar-title">BrowserMind — Configuration</span>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <div class="toggle-wrap" style="gap:6px">
+      <span style="font-size:12px;color:var(--text2)">🌙</span>
+      <label class="toggle"><input type="checkbox" id="theme-toggle"><span class="toggle-slider"></span></label>
+      <span style="font-size:12px;color:var(--text2)">☀️</span>
+    </div>
+    <button class="back-btn" id="back-btn">← Retour au chat</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="providers">🔌 Providers</div>
+  <div class="tab" data-tab="general">⚙ Général</div>
+  <div class="tab" data-tab="memory">💾 Mémoire</div>
+  <div class="tab" data-tab="history">📚 Historique</div>
+  <div class="tab" data-tab="modes">🎯 Modes</div>
+  <div class="tab" data-tab="tools">🔧 Outils</div>
+</div>
+
+<!-- ═══ TAB: PROVIDERS ═══ -->
+<div class="tab-content active" id="tab-providers">
+
+  <!-- Add provider form (collapsed by default) -->
+  <div id="add-provider-form" style="display:none">
+    <div class="add-provider-card">
+      <div class="add-provider-title">➕ Nouveau provider</div>
+      <div class="field">
+        <label class="field-label">Type de provider</label>
+        <select class="input select" id="new-provider-type">
+          <option value="">— Sélectionner —</option>
+          <option value="anthropic">🟣 Anthropic (Claude)</option>
+          <option value="openai">🤖 OpenAI (GPT)</option>
+          <option value="xai">⚡ xAI (Grok)</option>
+          <option value="mistral">🌊 Mistral AI</option>
+          <option value="deepseek">🔍 DeepSeek</option>
+          <option value="gemini">🔷 Google Gemini</option>
+          <option value="cohere">🧩 Cohere</option>
+          <option value="openrouter">🔀 OpenRouter</option>
+          <option value="zai">🌐 Z.ai (GLM)</option>
+          <option value="custom_openai">🔧 Custom — compatible OpenAI</option>
+          <option value="custom_anthropic">🔧 Custom — compatible Anthropic</option>
+        </select>
+      </div>
+      <div class="field" id="new-provider-url-field" style="display:none">
+        <label class="field-label">URL de base</label>
+        <input class="input input-mono" id="new-provider-url" placeholder="https://..."/>
+        <span class="field-hint" id="provider-url-hint">Ex: <code>http://localhost:11434/v1</code> pour Ollama — inclure <code>/v1</code> à la fin</span>
+      </div>
+      <div class="field" id="new-provider-name-field" style="display:none">
+        <label class="field-label">Nom affiché (optionnel)</label>
+        <input class="input" id="new-provider-name" placeholder="Mon serveur local..."/>
+      </div>
+      <div class="field">
+        <label class="field-label">Clé API</label>
+        <input type="password" class="input input-mono" id="new-provider-key" placeholder="Votre clé API..."/>
+        <span class="field-hint" id="new-provider-docs-link"></span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-primary" id="new-provider-add-btn" style="flex:1">✅ Ajouter ce provider</button>
+        <button class="btn btn-ghost" id="new-provider-cancel-btn">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="providers-toolbar">
+    <span class="providers-count" id="providers-count">0 provider(s) configuré(s)</span>
+    <button class="btn btn-primary" id="show-add-provider-btn">➕ Ajouter un provider</button>
+  </div>
+
+  <!-- List of configured providers -->
+  <div id="provider-grid">
+    <div class="providers-empty" id="providers-empty">
+      <div class="providers-empty-icon">🔌</div>
+      <div>Aucun provider configuré.</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">Cliquez "Ajouter un provider" pour commencer.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB: GENERAL ═══ -->
+<div class="tab-content" id="tab-general">
+  <div class="settings-section">
+    <div class="settings-section-title">Comportement de l'agent</div>
+    <div class="field">
+      <label class="field-label">Max itérations par requête</label>
+      <input type="number" class="input" id="max-iterations" value="15" min="1" max="50"/>
+      <span class="field-hint">Nombre maximum de tours avant d'arrêter. Plus élevé = tâches plus complexes.</span>
+    </div>
+    <div class="field">
+      <label class="field-label">Max tokens de contexte (garde-fou)</label>
+      <input type="number" class="input" id="max-tokens" value="40000" min="5000" max="200000"/>
+      <span class="field-hint">Réduire si erreur "rate limit input tokens". ~4 chars = 1 token.</span>
+    </div>
+  </div>
+  <div class="settings-section">
+    <div class="settings-section-title">Mémoire &amp; contexte</div>
+    <div class="toggle-wrap">
+      <label class="toggle"><input type="checkbox" id="memory-enabled" checked><span class="toggle-slider"></span></label>
+      <span style="font-size:13px">Activer la mémoire persistante entre sessions</span>
+    </div>
+    <div class="toggle-wrap">
+      <label class="toggle"><input type="checkbox" id="history-enabled" checked><span class="toggle-slider"></span></label>
+      <span style="font-size:13px">Sauvegarder l'historique des conversations</span>
+    </div>
+    <div class="field">
+      <label class="field-label">Durée de conservation de l'historique</label>
+      <select class="input select" id="history-retention">
+        <option value="7">7 jours</option>
+        <option value="30" selected>30 jours</option>
+        <option value="90">90 jours</option>
+        <option value="365">1 an</option>
+        <option value="0">Indéfiniment</option>
+      </select>
+    </div>
+  </div>
+  <div class="settings-section">
+    <div class="settings-section-title">Interface</div>
+    <div class="field">
+      <label class="field-label">Nombre max d'onglets</label>
+      <input type="number" class="input" id="max-tab-sessions" value="10" min="3" max="50"/>
+      <span class="field-hint">Limite du nombre d'onglets dans l'extension. Les plus anciens sont fermés automatiquement.</span>
+    </div>
+    <div class="field">
+      <label class="field-label">Langue de l'interface</label>
+      <select class="input select" id="ui-lang">
+        <option value="fr" selected>Français</option>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="it">Italiano</option>
+        <option value="de">Deutsch</option>
+        <option value="pt">Português</option>
+      </select>
+    </div>
+<div class="field">
+      <label class="field-label">Langue de l'agent</label>
+      <select class="input select" id="agent-lang">
+        <option value="fr" selected>Français</option>
+        <option value="en">English</option>
+        <option value="de">Deutsch</option>
+        <option value="es">Español</option>
+        <option value="it">Italiano</option>
+        <option value="pt">Português</option>
+      </select>
+    </div>
+    <div class="toggle-wrap">
+      <label class="toggle"><input type="checkbox" id="thinking-collapsed" checked><span class="toggle-slider"></span></label>
+      <span style="font-size:13px" data-i18n="thinkingCollapsedLabel">Réflexion rétractée par défaut</span>
+    </div>
+    <div class="toggle-wrap">
+      <label class="toggle"><input type="checkbox" id="highlight-clicks" checked><span class="toggle-slider"></span></label>
+      <span style="font-size:13px" data-i18n="highlightClicksLabel">Surbrillance des éléments cliqués</span>
+    </div>
+    <div class="toggle-wrap">
+      <label class="toggle"><input type="checkbox" id="debug-mode"><span class="toggle-slider"></span></label>
+      <span style="font-size:13px" data-i18n="debugModeLabel">Mode debug (bouton de signalement de bug)</span>
+    </div>
+    <div class="field">
+      <label class="field-label" data-i18n="bestPracticesLabel">Aide au modèle (best practices)</label>
+      <select class="input select" id="best-practices">
+        <option value="auto" data-i18n="bestPracticesAuto" selected>Auto (selon le modèle)</option>
+        <option value="always" data-i18n="bestPracticesAlways">Toujours activé</option>
+        <option value="never" data-i18n="bestPracticesNever">Jamais</option>
+      </select>
+      <span class="field-hint" data-i18n="bestPracticesHint">Ajoute des instructions détaillées pour guider les modèles moins puissants.</span>
+    </div>
+    <div class="field">
+      <label class="field-label" data-i18n="systemPromptLabel">Prompt système personnalisé</label>
+      <textarea class="input" id="system-prompt" rows="4" placeholder="Ex: Tu es un utilisateur qui cherche des offres d'emploi en France, navigue calmement, évite les actions automatiques..."></textarea>
+      <span class="field-hint">Instructions ajoutées au prompt système de l'agent. Laissez vide pour utiliser le comportement par défaut.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB: MEMORY ═══ -->
+<div class="tab-content" id="tab-memory">
+  <div class="memory-toolbar">
+    <input class="input" id="mem-search" placeholder="🔍 Rechercher..." style="max-width:200px"/>
+    <button class="btn btn-ghost" id="mem-export-btn" style="margin-left:auto">⬇ Exporter</button>
+    <button class="btn btn-danger" id="mem-clear-btn">🗑 Tout effacer</button>
+  </div>
+  <div class="memory-add-form">
+    <input class="input input-mono" id="mem-new-key" placeholder="Clé..." style="max-width:140px"/>
+    <input class="input" id="mem-new-val" placeholder="Valeur..."/>
+    <button class="btn btn-primary" id="mem-add-btn">+ Ajouter</button>
+  </div>
+  <div class="memory-list" id="memory-list">
+    <div class="memory-empty">Aucune entrée en mémoire persistante.</div>
+  </div>
+</div>
+
+<!-- ═══ TAB: HISTORY ═══ -->
+<div class="tab-content" id="tab-history">
+  <div class="history-toolbar">
+    <input class="input history-search" id="hist-search" placeholder="🔍 Rechercher dans l'historique..."/>
+    <button class="btn btn-danger" id="hist-clear-btn">🗑 Tout effacer</button>
+  </div>
+  <div class="history-list" id="history-list">
+    <div class="history-empty">Aucun historique sauvegardé.</div>
+  </div>
+</div>
+
+<!-- ═══ TAB: MODES ═══ -->
+<div class="tab-content" id="tab-modes">
+  <div class="settings-section">
+    <div class="settings-section-title">Configuration des modes</div>
+    <div class="toggle-wrap">
+      <label class="toggle"><input type="checkbox" id="auto-detect-mode" checked><span class="toggle-slider"></span></label>
+      <span style="font-size:13px" data-i18n="autoDetectMode">Détection automatique du mode selon l'URL visitée</span>
+    </div>
+  </div>
+
+  <!-- Modes natifs -->
+  <div class="settings-section">
+    <div class="settings-section-title" data-i18n="nativeModes">Modes natifs</div>
+    <div id="modes-list" class="modes-grid"></div>
+  </div>
+
+  <!-- Modes custom -->
+  <div class="settings-section">
+    <div class="settings-section-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span data-i18n="customModes">✨ Mes modes personnalisés</span>
+      <button class="btn btn-ghost" id="add-mode-btn" data-i18n="addModeBtn" style="font-size:12px">+ Créer un mode</button>
+    </div>
+    <div id="custom-modes-list"></div>
+  </div>
+</div>
+
+<!-- ── Mode edit modal ── -->
+<div id="mode-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px;width:min(580px,96vw);max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px">
+    <div style="font-size:14px;font-weight:700;color:var(--text)" id="mode-modal-title" data-i18n="newModeTitle">Nouveau mode</div>
+
+    <div style="display:grid;grid-template-columns:60px 1fr 1fr;gap:8px">
+      <div class="field">
+        <label class="field-label" data-i18n="modeIconLabel">Icône</label>
+        <input class="input" id="mode-icon" placeholder="🧩" style="font-size:18px;text-align:center"/>
+      </div>
+      <div class="field">
+        <label class="field-label" data-i18n="modeIdLabel">Identifiant (snake_case) *</label>
+        <input class="input input-mono" id="mode-id" placeholder="mon_mode"/>
+      </div>
+      <div class="field">
+        <label class="field-label" data-i18n="modeLabelLabel">Nom affiché *</label>
+        <input class="input" id="mode-label" placeholder="Mon mode"/>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" data-i18n="modeDescLabel">Description courte</label>
+      <input class="input" id="mode-desc" placeholder="Ce que fait ce mode…"/>
+    </div>
+
+    <div class="field">
+      <label class="field-label" data-i18n="modePromptLabel">Prompt système (instructions pour le LLM)</label>
+      <textarea class="input" id="mode-prompt" rows="5" placeholder="Tu es un assistant spécialisé en…&#10;- Fais ceci&#10;- Fais cela"></textarea>
+    </div>
+
+    <div class="field">
+      <label class="field-label" data-i18n="modeToolsLabel">Outils autorisés pour ce mode</label>
+      <div style="margin-bottom:6px">
+        <label style="font-size:12px;cursor:pointer">
+          <input type="checkbox" id="mode-tools-all" style="margin-right:4px"> <strong data-i18n="modeToolsAll">Tous les outils (*)</strong>
+        </label>
+      </div>
+      <div id="mode-tools-grid" class="mode-tools-grid"></div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" data-i18n="modeUrlsLabel">URL patterns (détection automatique, optionnel)</label>
+      <input class="input input-mono" id="mode-urls" placeholder="exemple.com, autre-site.fr"/>
+      <div class="field-hint" data-i18n="modeUrlsHint">Domaines séparés par des virgules. Le mode sera proposé automatiquement quand tu visites ces sites.</div>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+      <button class="btn btn-ghost" id="mode-modal-cancel" data-i18n="cancelBtn">Annuler</button>
+      <button class="btn btn-primary" id="mode-modal-save" data-i18n="saveBtn">💾 Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB: TOOLS ═══ -->
+<div class="tab-content" id="tab-tools">
+
+  <!-- Remote tools source -->
+  <div class="settings-section">
+    <div class="settings-section-title" data-i18n="remoteToolsTitle">📡 Outils distants</div>
+    <div class="field">
+      <label class="field-label" data-i18n="remoteToolsUrlLabel">URL du registre distant</label>
+      <div style="display:flex;gap:8px">
+        <input class="input input-mono" id="remote-tools-url" placeholder="https://votre-site.fr/browsermind-tools.json" style="flex:1"/>
+        <button class="btn btn-ghost" id="remote-tools-load-btn" data-i18n="remoteToolsLoadBtn">↻ Charger</button>
+      </div>
+      <div class="field-hint" data-i18n="remoteToolsUrlHint">Fichier JSON public contenant un tableau d'outils. <a href="https://tools.mapi85.fr/browsermind-tools-format.json" target="_blank" rel="noopener">Voir le format →</a></div>
+    </div>
+    <div id="remote-tools-status" style="font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:4px"></div>
+    <div id="remote-tools-list" style="margin-top:8px"></div>
+  </div>
+
+  <!-- Custom user tools -->
+  <div class="settings-section">
+    <div class="settings-section-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span data-i18n="customToolsTitle">🛠️ Mes outils personnalisés</span>
+      <button class="btn btn-ghost" id="add-tool-btn" data-i18n="addToolBtn" style="font-size:12px">+ Ajouter un outil</button>
+    </div>
+    <div id="custom-tools-list"></div>
+  </div>
+
+  <!-- Native tools reference -->
+  <div class="settings-section">
+    <div class="settings-section-title" data-i18n="nativeToolsTitle">📋 Outils natifs (référence)</div>
+    <div class="field-hint" data-i18n="nativeToolsHint" style="margin-bottom:8px">Ces outils sont intégrés et ne peuvent pas être modifiés.</div>
+    <div id="native-tools-list"></div>
+  </div>
+
+</div>
+
+<!-- ── Tool edit modal ── -->
+<div id="tool-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px;width:min(520px,95vw);max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px">
+    <div style="font-size:14px;font-weight:700;color:var(--text)" id="tool-modal-title" data-i18n="newToolTitle">Nouvel outil</div>
+
+    <div class="field">
+      <label class="field-label" data-i18n="toolNameLabel">Identifiant (snake_case unique) *</label>
+      <input class="input input-mono" id="tool-name" placeholder="mon_outil_custom"/>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="field">
+        <label class="field-label" data-i18n="toolIconLabel">Icône (emoji)</label>
+        <input class="input" id="tool-icon" placeholder="🔧" style="font-size:18px;text-align:center"/>
+      </div>
+      <div class="field">
+        <label class="field-label" data-i18n="toolDisplayLabel">Nom affiché *</label>
+        <input class="input" id="tool-label" placeholder="Mon outil"/>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label" data-i18n="toolDescLabel">Description (vue par le LLM) *</label>
+      <textarea class="input" id="tool-desc" rows="2" placeholder="Décrit ce que fait l'outil et quand l'utiliser..."></textarea>
+    </div>
+    <div class="field">
+      <label class="field-label" data-i18n="toolSchemaLabel">Paramètres (JSON Schema) *</label>
+      <textarea class="input input-mono" id="tool-schema" rows="5" style="font-size:11px" placeholder='{"type":"object","properties":{"query":{"type":"string"}},"required":["query"]}'></textarea>
+      <div class="field-hint"><span data-i18n="toolSchemaHint">Schéma JSON des paramètres d'entrée.</span> <button type="button" class="link-btn" id="tool-schema-example" data-i18n="toolSchemaExample">Voir un exemple</button></div>
+    </div>
+    <div class="field">
+      <label class="field-label" data-i18n="toolExecutorLabel">Exécuteur</label>
+      <select class="input select" id="tool-executor">
+        <option value="" data-i18n="toolExecutorNone">Aucun (outil déclaratif)</option>
+        <option value="web_search_ext">web_search_ext — Recherche web</option>
+        <option value="generate_document_ext">generate_document_ext — Générer un document</option>
+        <option value="api_call_ext">api_call_ext — Appel API</option>
+        <option value="inject" data-i18n="toolExecutorInject">inject — Script JS injecté dans la page</option>
+      </select>
+    </div>
+    <div class="field" id="tool-inject-field" style="display:none">
+      <label class="field-label" data-i18n="toolInjectLabel">Script JS (function body, reçoit <code>input</code>)</label>
+      <textarea class="input input-mono" id="tool-inject-script" rows="5" style="font-size:11px" placeholder="// input contient les paramètres de l'outil&#10;return { result: document.title };"></textarea>
+      <div class="field-hint" data-i18n="toolInjectHint">⚠️ Le script est injecté dans la page active. Utilisez avec précaution.</div>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+      <button class="btn btn-ghost" id="tool-modal-cancel" data-i18n="cancelBtn">Annuler</button>
+      <button class="btn btn-primary" id="tool-modal-save" data-i18n="saveBtn">💾 Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<div class="save-bar">
+  <span class="save-info" id="save-info">Non sauvegardé</span>
+  <button class="btn btn-primary" id="save-btn">💾 Sauvegarder</button>
+</div>
+
+<div class="about-section">
+  <div class="about-name">BrowserMind — AI Navigator</div>
+  <div class="about-version">Version 1.0.0</div>
+  <div class="about-links">
+    <a href="https://tools.mapi85.fr" target="_blank" rel="noopener">🌐 mapiTools</a>
+    <span>·</span>
+    <a href="https://tools.mapi85.fr/browsermind" target="_blank" rel="noopener">☕ Soutenir</a>
+  </div>
+</div>
+
+<script src="src/icons.js"></script>
+<script src="src/modes.js"></script>
+<script src="src/tools-registry.js"></script>
+<script src="src/config.js"></script>
+</body>
+</html>

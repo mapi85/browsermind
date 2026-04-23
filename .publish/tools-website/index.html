@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrowserMind — AI Navigator | tools.mapi85.fr</title>
+  <meta name="description" content="BrowserMind est une extension Chrome qui pilotage votre navigateur avec un assistant IA. Naviguez, remplissez des formulaires, extrayez des données automatiquement.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --bg2: #12121a;
+      --bg3: #1a1a24;
+      --accent: #5b4ed8;
+      --accent2: #8b7ffa;
+      --accent-dim: rgba(91,78,216,0.15);
+      --text: #f0f0f8;
+      --text2: #b8b8d8;
+      --text3: #7070a0;
+      --border: #2a2a3a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg); color: var(--text);
+      font-size: 15px; line-height: 1.6;
+    }
+    a { color: var(--accent2); text-decoration: none; transition: color 0.15s; }
+    a:hover { color: var(--accent); }
+
+    /* Header */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 24px; position: fixed; top: 0; left: 0; right: 0;
+      background: rgba(10,10,15,0.85); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border); z-index: 100;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    }
+    .logo-icon svg { color: #fff; }
+    .logo-text { font-size: 18px; font-weight: 700; }
+    nav { display: flex; gap: 24px; font-size: 14px; }
+    nav a { color: var(--text2); }
+    nav a:hover { color: var(--text); }
+
+    /* Hero */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 100px 24px 60px;
+    }
+    .hero-icon {
+      width: 80px; height: 80px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 20px; margin-bottom: 24px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 20px 60px rgba(91,78,216,0.3);
+    }
+    .hero-icon svg { color: #fff; width: 44px; height: 44px; }
+    .hero h1 {
+      font-size: 48px; font-weight: 800; line-height: 1.1;
+      margin-bottom: 16px; letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fff, var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 18px; color: var(--text2); max-width: 540px;
+      margin-bottom: 32px;
+    }
+    .cta-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; font-size: 16px; font-weight: 600;
+      padding: 14px 28px; border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(91,78,216,0.35);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(91,78,216,0.45); color: #fff; }
+
+    /* Features */
+    .features { padding: 80px 24px; background: var(--bg2); }
+    .section-title {
+      text-align: center; font-size: 13px; font-weight: 600;
+      color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 48px;
+    }
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px; max-width: 900px; margin: 0 auto;
+    }
+    .feature-card {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px;
+    }
+    .feature-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: var(--accent-dim); margin-bottom: 14px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .feature-icon svg { color: var(--accent2); }
+    .feature-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .feature-card p { font-size: 13px; color: var(--text2); }
+
+    /* Support section */
+    .support { padding: 80px 24px; }
+    .support-card {
+      max-width: 480px; margin: 0 auto; text-align: center;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 40px;
+    }
+    .support-card h2 { font-size: 24px; margin-bottom: 12px; }
+    .support-card p { color: var(--text2); margin-bottom: 24px; }
+    .plisio-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #f7931a; color: #fff;
+      font-size: 15px; font-weight: 600;
+      padding: 12px 24px; border-radius: 10px;
+      transition: opacity 0.2s;
+    }
+    .plisio-btn:hover { opacity: 0.9; color: #fff; }
+
+    /* Footer */
+    footer {
+      padding: 32px 24px; text-align: center;
+      border-top: 1px solid var(--border); font-size: 13px; color: var(--text3);
+    }
+    footer a { color: var(--text2); }
+
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 32px; }
+      nav { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 100 100"
+     width="100" height="100"
+     color="#FFF" fill="none" stroke="currentColor"
+     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%"   stop-color="#5b4ed8"/>
+      <stop offset="100%" stop-color="#7c6af7"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="matrix(1.957278, 0, 0, 1.948247, -36.835388, -22.991181)">
+    <rect y="11.918" width="51.157" height="51.157" rx="10"
+          fill="url(#bgGrad)" x="18.835"/>
+    <g transform="matrix(1, 0, 0, 1, 0.120825, 0.761346)">
+      <path d="M 44.293 26.431 C 44.302 23.03 40.627 20.892 37.674 22.585 C 36.239 23.408 35.385 24.964 35.459 26.615 C 31.752 27.568 29.923 31.746 31.737 35.115 C 28.513 37.736 28.938 42.779 32.557 44.821 C 31.975 49.32 36.481 52.761 40.668 51.015 C 42.861 50.101 44.29 47.959 44.293 45.582 L 44.293 26.431 Z"/>
+      <path d="M 44.293 26.431 C 44.283 23.03 47.96 20.892 50.911 22.585 C 52.346 23.408 53.202 24.964 53.128 26.615 C 56.833 27.568 58.663 31.746 56.849 35.115 C 60.072 37.736 59.647 42.779 56.03 44.821 C 56.611 49.32 52.104 52.761 47.917 51.015 C 45.725 50.101 44.295 47.959 44.293 45.582 L 44.293 26.431 Z"/>
+      <path d="M 48.713 38.216 C 46.183 37.327 44.439 35.002 44.293 32.324 C 44.147 35.002 42.403 37.327 39.874 38.216"/>
+      <path d="M 52.542 28.641 C 52.898 28.024 53.1 27.328 53.129 26.615"/>
+      <path d="M 35.459 26.615 C 35.487 27.328 35.689 28.024 36.045 28.641"/>
+      <path d="M 31.737 35.117 C 32.007 34.897 32.294 34.703 32.599 34.534"/>
+      <path d="M 55.987 34.534 C 56.291 34.703 56.58 34.897 56.849 35.117"/>
+      <path d="M 35.454 45.582 C 34.438 45.584 33.44 45.322 32.557 44.822"/>
+      <path d="M 56.03 44.822 C 55.145 45.322 54.147 45.584 53.132 45.582"/>
+    </g>
+  </g>
+</svg>
+    </div>
+    <span class="logo-text">BrowserMind</span>
+  </div>
+  <nav>
+    <a href="#features">Fonctionnalités</a>
+    <a href="#support">Soutenir</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <div class="hero-icon">
+    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/>
+      <path d="M12 22V8.5"/>
+      <path d="M22 8.5L12 15.5L2 8.5"/>
+      <path d="M12 15.5L12 22"/>
+    </svg>
+  </div>
+  <h1>BrowserMind — AI Navigator</h1>
+  <p>Pilotez votre navigateur avec un assistant IA. Naviguez automatiquement, remplissez des formulaires, extrayez des données, le tout depuis un panneau latéral.</p>
+  <a href="#" class="cta-btn">Installer sur Chrome</a>
+</section>
+
+<section class="features" id="features">
+  <div class="section-title">Fonctionnalités</div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      </div>
+      <h3>Agent IA intelligent</h3>
+      <p>11 providers supportés (Anthropic, OpenAI, xAI, Mistral, DeepSeek, Gemini...). multi-modèles.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      </div>
+      <h3>Navigation autonome</h3>
+      <p>L'agent clique, remplit des formulaires, navigue entre les pages pour accomplir vos tâches.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <h3>Mémoire persistante</h3>
+      <p>L'IA se souvient de vos préférences d'une session à l'autre.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+      </div>
+      <h3>Multi-onglets</h3>
+      <p>Chaque onglet a sa propre session de chat. Basculez facilement entre vos conversations.</p>
+    </div>
+  </div>
+</section>
+
+<section class="support" id="support">
+  <div class="support-card">
+    <h2>Soutenir</h2>
+    <p>BrowserMind est entièrement gratuit et open source. Si vous l'appréciez, envisagez un don pour aider au développement.</p>
+    <a href="https://plisio.net/donate/PLISIO_ID_PLACEHOLDER" class="plisio-btn" target="_blank" rel="noopener">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      Faire un don en crypto
+    </a>
+    <p style="font-size:11px;margin-top:12px;color:var(--text3)">Via Plisio (BTC, ETH, USDT, et autres)</p>
+  </div>
+</section>
+
+<footer>
+  <p>© 2025 <a href="https://tools.mapi85.fr">tools.mapi85.fr</a> · BrowserMind v5.1.0</p>
+</footer>
+
+</body>
+</html>
