@@ -1,15 +1,15 @@
 // ═══════════════════════════════════════════════
-//  BrowserMind v6.0.0 — Background Service Worker
+//  BrowserMind v1.0.0 — Background Service Worker
 // ═══════════════════════════════════════════════
 
 // ─── KEEP-ALIVE SERVICE WORKER (MV3) ────────────
-// En MV3, le Service Worker est tué après ~30s d'inactivité.
-// Si un appel API est en vol (30-60s), la réponse peut être perdue.
-// chrome.alarms est la seule méthode fiable pour maintenir le SW actif.
+// In Manifest V3, the Service Worker is terminated after ~30s of inactivity.
+// If an API call is in flight (e.g. 30-60s), the response could be lost.
+// Using chrome.alarms is a standard and reliable method to keep the SW active.
 chrome.alarms.create('keepAlive', { periodInMinutes: 0.4 });
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'keepAlive') {
-    // Heartbeat silencieux — maintient le SW réveillé
+    // Silent heartbeat - keeps the Service Worker awake
     chrome.storage.local.get('__sw_ping__', () => {});
   }
 });
@@ -849,7 +849,7 @@ async function callExternalAPI({ api, endpoint = '', params = {} }) {
   const headers = {};
   if (api === 'wikidata') {
     headers['Accept'] = 'application/json';
-    headers['User-Agent'] = 'BrowserMind/6.0';
+    headers['User-Agent'] = 'BrowserMind/1.0';
   }
   
   const res = await fetch(urlObj.toString(), {
@@ -876,13 +876,17 @@ async function callExternalAPI({ api, endpoint = '', params = {} }) {
 //  Web Search (web_search tool)
 // ═══════════════════════════════════════════════
 
+/**
+ * Web search using official DuckDuckGo Instant Answer API.
+ * Replaces previous HTML scraping to comply with Chrome Web Store policies.
+ */
 async function webSearch({ query, max_results = 5 }) {
-  const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+  const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&no_redirect=1`;
   
   const res = await fetch(url, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'text/html',
+      'Accept': 'application/json',
+      'User-Agent': 'BrowserMind/1.0 (Chrome Extension)'
     },
   });
   
@@ -890,30 +894,44 @@ async function webSearch({ query, max_results = 5 }) {
     throw new Error(`Web search failed: HTTP ${res.status}`);
   }
   
-  const html = await res.text();
-  
+  const data = await res.json();
   const results = [];
-  const linkRegex = /class="result__a"[^>]*href="([^"]+)"[^>]*>([^<]+)/g;
-  const titleRegex = /class="result__a"[^>]*>([^<]+)<\/a>/g;
-  
-  let match;
-  let titleMatch;
-  let titles = [];
-  while ((titleMatch = titleRegex.exec(html)) !== null) {
-    titles.push(titleMatch[1].trim());
-  }
-  
-  let idx = 0;
-  while ((match = linkRegex.exec(html)) !== null && results.length < max_results) {
-    let finalUrl = match[1];
-    if (finalUrl.startsWith('//')) {
-      finalUrl = 'https:' + finalUrl;
-    }
+
+  // Extract from Abstract
+  if (data.AbstractURL && data.AbstractText) {
     results.push({
-      title: titles[idx] || query,
-      url: finalUrl,
+      title: data.AbstractSource || 'Abstract',
+      url: data.AbstractURL,
+      snippet: data.AbstractText.substring(0, 200)
     });
-    idx++;
+  }
+
+  // Extract from RelatedTopics
+  if (data.RelatedTopics && Array.isArray(data.RelatedTopics)) {
+    for (const topic of data.RelatedTopics) {
+      if (results.length >= max_results) break;
+      
+      // RelatedTopics can contain categories or direct results
+      if (topic.FirstURL && topic.Text) {
+        results.push({
+          title: topic.Text.split(' - ')[0] || topic.Text.substring(0, 50),
+          url: topic.FirstURL,
+          snippet: topic.Text
+        });
+      } else if (topic.Topics && Array.isArray(topic.Topics)) {
+        // Handle sub-topics
+        for (const sub of topic.Topics) {
+          if (results.length >= max_results) break;
+          if (sub.FirstURL && sub.Text) {
+            results.push({
+              title: sub.Text.split(' - ')[0] || sub.Text.substring(0, 50),
+              url: sub.FirstURL,
+              snippet: sub.Text
+            });
+          }
+        }
+      }
+    }
   }
   
   return { query, count: results.length, results };
@@ -953,7 +971,7 @@ async function openNewTab({ url, active = true }) {
 
 // ═══════════════════════════════════════════════
 //  CUSTOM TOOL EXECUTOR
-//  Gère les outils non-natifs déclarés par l'utilisateur
+//  Handles non-native tools defined by the user or loaded remotely.
 // ═══════════════════════════════════════════════
 
 async function executeCustomTool(toolName, input, tabId) {
@@ -971,7 +989,7 @@ async function executeCustomTool(toolName, input, tabId) {
   const executor = tool.executor || null;
 
   switch (executor) {
-    // Alias vers generate_document avec format forcé
+    // Alias to generate_document with forced format
     case 'generate_document_ext':
       return generateDocument(tabId, {
         format: input.format || tool.defaultFormat || 'txt',
@@ -979,7 +997,7 @@ async function executeCustomTool(toolName, input, tabId) {
         filename: input.filename || tool.name
       });
 
-    // Alias vers api_call avec endpoint pré-configuré
+    // Alias to api_call with pre-configured endpoint
     case 'api_call_ext':
       return callExternalAPI({
         api: tool.api || input.api,
@@ -987,38 +1005,21 @@ async function executeCustomTool(toolName, input, tabId) {
         params: { ...(tool.defaultParams || {}), ...input }
       });
 
-    // Alias vers web_search avec query construite
+    // Alias to web_search with constructed query
     case 'web_search_ext':
       return webSearch({
         query: input.query || (tool.queryTemplate || '').replace('{{input}}', JSON.stringify(input)),
         max_results: input.max_results || tool.maxResults || 5
       });
 
-    // Pas d'executor → exécution JS injectée si fournie
+    // No executor → generic return (declarative tools only)
     default: {
-      // Si l'outil a un script d'injection JS (format: string de fonction)
-      if (tool.injectScript && tabId) {
-        try {
-          const fn = new Function('input', tool.injectScript); // eslint-disable-line no-new-func
-          const [result] = await chrome.scripting.executeScript({
-            target: { tabId },
-            func: (inputJson, scriptStr) => {
-              try {
-                const fn = new Function('input', scriptStr);
-                return fn(JSON.parse(inputJson));
-              } catch(e) {
-                return { error: e.message };
-              }
-            },
-            args: [JSON.stringify(input), tool.injectScript]
-          });
-          return result?.result || { success: true };
-        } catch (e) {
-          return { error: `Custom tool injection failed: ${e.message}` };
-        }
-      }
-      // Outil purement déclaratif sans executor → retour générique
-      return { success: true, tool: toolName, input, note: 'declarative tool — no executor defined' };
+      return { 
+        success: true, 
+        tool: toolName, 
+        input, 
+        note: 'declarative tool — no executor defined' 
+      };
     }
   }
 }

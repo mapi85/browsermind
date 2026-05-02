@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════
-//  BrowserMind v6.0.0 — Side Panel Logic
+//  BrowserMind v1.0.0 — Side Panel Logic
 // ═══════════════════════════════════════════════
 
 // ─── TRANSLATIONS ────────────────────────────────
@@ -615,15 +615,15 @@ function renderMarkdown(text) {
 
 // ─── PROVIDER DEFINITIONS ───────────────────────
 const PROVIDER_DEFS = {
-  anthropic:        { name: 'Anthropic (Claude)', emoji: '🟣', type: 'anthropic' },
-  openai:           { name: 'OpenAI (GPT)',        emoji: '🤖', type: 'openai'    },
-  xai:              { name: 'xAI (Grok)',          emoji: '⚡', type: 'openai'    },
-  mistral:          { name: 'Mistral AI',          emoji: '🌊', type: 'openai'    },
-  deepseek:         { name: 'DeepSeek',            emoji: '🔍', type: 'openai'    },
-  gemini:           { name: 'Google Gemini',       emoji: '🔷', type: 'openai'    },
-  cohere:           { name: 'Cohere',              emoji: '🧩', type: 'openai'    },
-  openrouter:       { name: 'OpenRouter',          emoji: '🔀', type: 'openai'    },
-  zai:              { name: 'Z.ai (GLM)',           emoji: '🌐', type: 'openai'    },
+  anthropic:        { name: 'Claude-compatible', emoji: '🟣', type: 'anthropic' },
+  openai:           { name: 'GPT-compatible',    emoji: '🤖', type: 'openai'    },
+  xai:              { name: 'Grok-compatible',   emoji: '⚡', type: 'openai'    },
+  mistral:          { name: 'Mistral',           emoji: '🌊', type: 'openai'    },
+  deepseek:         { name: 'DeepSeek',          emoji: '🔍', type: 'openai'    },
+  gemini:           { name: 'Gemini',            emoji: '🔷', type: 'openai'    },
+  cohere:           { name: 'Cohere',            emoji: '🧩', type: 'openai'    },
+  openrouter:       { name: 'Router',            emoji: '🔀', type: 'openai'    },
+  zai:              { name: 'GLM',               emoji: '🌐', type: 'openai'    },
   custom_openai:    { name: 'Custom (OAI compat)', emoji: '🔧', type: 'openai'    },
   custom_anthropic: { name: 'Custom (ANT compat)', emoji: '🔧', type: 'anthropic' },
 };
@@ -2048,7 +2048,7 @@ function openBugPanel() {
 function buildBugLog() {
   const session = activeTabId ? tabSessions[activeTabId] : null;
   return [
-    `BrowserMind v5.1.0 — Bug Report`,
+    `BrowserMind v1.0.0 — Bug Report`,
     `Date: ${new Date().toISOString()}`,
     `Provider: ${settings.currentProvider}`,
     `Model: ${getCurrentModel()}`,

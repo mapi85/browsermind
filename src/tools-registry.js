@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════
-//  BrowserMind v6.1.0 — Tools Registry
+//  BrowserMind v1.0.0 — Tools Registry
 //  Gestion des outils natifs + outils custom
 // ═══════════════════════════════════════════════
 //
