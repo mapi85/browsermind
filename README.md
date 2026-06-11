@@ -38,7 +38,7 @@ Or load unpacked in developer mode:
 |---|---|
 | **12 contextual modes** | Travel, Research, Shopping, Real Estate, Jobs, Education… |
 | **14 native tools** | click, type, scroll, navigate, extract, screenshot, web_search… |
-| **Multi-provider** | Anthropic, OpenAI, xAI, Mistral, DeepSeek, Gemini, Ollama, OpenRouter… |
+| **Multi-provider** | OpenAI, Anthropic, Google, and others — or custom endpoints |
 | **Extensible tools** | Create custom tools or load a remote registry from any URL |
 | **Custom modes** | Create your own modes with custom prompts and tool sets |
 | **Multi-tab sessions** | Isolated conversations per tab, up to 10 simultaneous sessions |
@@ -69,21 +69,7 @@ Minimal tool format:
 
 ## 🌐 Supported providers
 
-| Provider | Type | Base URL needed |
-|---|---|---|
-| Anthropic (Claude) | Native | No |
-| OpenAI (GPT) | Native | No |
-| xAI (Grok) | Native | No |
-| Mistral | Native | No |
-| DeepSeek | Native | No |
-| Google Gemini | Native | No |
-| Cohere | Native | No |
-| OpenRouter | Native | No |
-| Z.ai / GLM | Native | No |
-| **Ollama** | Custom OpenAI | `http://localhost:11434/v1` |
-| **LM Studio** | Custom OpenAI | `http://localhost:1234/v1` |
-| Any OpenAI-compatible | Custom OpenAI | Your endpoint `/v1` |
-| Any Anthropic-compatible | Custom Anthropic | Your proxy `/v1` |
+BrowserMind works with major AI providers including OpenAI, Anthropic, Google, and others. You can use native integrations for popular services or configure custom endpoints for any OpenAI-compatible or Anthropic-compatible API (local servers, self-hosted instances, etc.).
 
 ---
 

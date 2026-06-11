@@ -22,9 +22,12 @@ npm-debug.log*
 
 # Publish drafts (keep .publish folder out of main repo if desired)
 # Uncomment the line below to exclude it:
-# .publish/
+.publish/
 
 # Local dev overrides
 *.local
 .env
 .env.*
+
+# AI tooling workspaces
+.kilo/

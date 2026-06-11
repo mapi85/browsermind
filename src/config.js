@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════
-//  BrowserMind v6.0.0 — Config Page Logic
+//  BrowserMind v1.0.0 — Config Page Logic
 // ═══════════════════════════════════════════════
 
 // ─── TRANSLATIONS FOR CONFIG PAGE ──────────────
@@ -119,7 +119,7 @@ const I18N_CONFIG = {
     badgeRemote: 'distant',
     badgeCustom: 'custom',
     autoDetectMode: 'Détection automatique du mode selon l\'URL visitée',
-    aboutTitle: 'À propos', aboutWebsite: '🌐 Site web', aboutSupport: '☕ Soutenir le projet',
+    aboutTitle: 'À propos', aboutWebsite: '🌐 Site web', aboutSupport: '☕ Soutenir',
     modeLibre: 'Libre', modeVoyage: 'Voyage', modeRecherche: 'Recherche',
     modeAnalyse: 'Analyse', modeExtraction: 'Extraction', modeAdministratif: 'Administratif',
     modeShopping: 'Shopping', modeVeille: 'Veille', modeCuisine: 'Cuisine',
@@ -924,16 +924,16 @@ function updateI18nConfig() {
 // ─── CATALOGUE DE TOUS LES TYPES DISPONIBLES ───
 // Utilisé uniquement pour la création, pas affiché en liste
 const PROVIDER_CATALOG = {
-  anthropic:        { name: 'Anthropic (Claude)',        emoji: '🟣', type: 'anthropic', placeholder: 'sk-ant-api03-...', docsUrl: 'https://console.anthropic.com/settings/keys' },
-  openai:           { name: 'OpenAI (GPT)',              emoji: '🤖', type: 'openai',    placeholder: 'sk-...',           docsUrl: 'https://platform.openai.com/api-keys' },
-  xai:              { name: 'xAI (Grok)',                emoji: '⚡', type: 'openai',    placeholder: 'xai-...',          docsUrl: 'https://console.x.ai/' },
-  mistral:          { name: 'Mistral AI',                emoji: '🌊', type: 'openai',    placeholder: 'Clé Mistral...',   docsUrl: 'https://console.mistral.ai/api-keys/' },
+  anthropic:        { name: 'Claude-compatible',         emoji: '🟣', type: 'anthropic', placeholder: 'sk-ant-api03-...', docsUrl: 'https://console.anthropic.com/settings/keys' },
+  openai:           { name: 'GPT-compatible',            emoji: '🤖', type: 'openai',    placeholder: 'sk-...',           docsUrl: 'https://platform.openai.com/api-keys' },
+  xai:              { name: 'Grok-compatible',           emoji: '⚡', type: 'openai',    placeholder: 'xai-...',          docsUrl: 'https://console.x.ai/' },
+  mistral:          { name: 'Mistral',                   emoji: '🌊', type: 'openai',    placeholder: 'Clé Mistral...',   docsUrl: 'https://console.mistral.ai/api-keys/' },
   deepseek:         { name: 'DeepSeek',                  emoji: '🔍', type: 'openai',    placeholder: 'sk-...',           docsUrl: 'https://platform.deepseek.com/api_keys' },
-  gemini:           { name: 'Google Gemini',             emoji: '🔷', type: 'openai',    placeholder: 'AIza...',          docsUrl: 'https://aistudio.google.com/app/apikey' },
+  gemini:           { name: 'Gemini',                    emoji: '🔷', type: 'openai',    placeholder: 'AIza...',          docsUrl: 'https://aistudio.google.com/app/apikey' },
   cohere:           { name: 'Cohere',                    emoji: '🧩', type: 'openai',    placeholder: '...',              docsUrl: 'https://dashboard.cohere.com/api-keys' },
-  openrouter:       { name: 'OpenRouter',                emoji: '🔀', type: 'openai',    placeholder: 'sk-or-...',        docsUrl: 'https://openrouter.ai/keys' },
-  zai:              { name: 'Z.ai (GLM)',                emoji: '🌐', type: 'openai',    placeholder: 'Clé Z.ai...',      docsUrl: 'https://www.z.ai/' },
-  custom_openai:    { name: 'Custom — compatible OpenAI',    emoji: '🔧', type: 'openai',    placeholder: 'Clé API...', docsUrl: '' },
+  openrouter:       { name: 'Router',                    emoji: '🔀', type: 'openai',    placeholder: 'sk-or-...',        docsUrl: 'https://openrouter.ai/keys' },
+  zai:              { name: 'GLM',                       emoji: '🌐', type: 'openai',    placeholder: 'Clé API...',       docsUrl: 'https://www.z.ai/' },
+  custom_openai:    { name: 'Custom — compatible OpenAI',     emoji: '🔧', type: 'openai',    placeholder: 'Clé API...', docsUrl: '' },
   custom_anthropic: { name: 'Custom — compatible Anthropic', emoji: '🔧', type: 'anthropic', placeholder: 'Clé API...', docsUrl: '' },
 };
 

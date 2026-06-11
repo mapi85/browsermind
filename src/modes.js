@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════
-//  BrowserMind v6.0.0 — Modes Definitions
+//  BrowserMind v1.0.0 — Modes Definitions
 // ═══════════════════════════════════════════════
 // 
 // Chaque mode définit le comportement contextualisé de l'agent.

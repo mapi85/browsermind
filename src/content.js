@@ -1,4 +1,4 @@
-// BrowserMind v5.1.0 — Content Script
+// BrowserMind v1.0.0 — Content Script
 (function () {
   if (window.__bm_loaded) return;
   window.__bm_loaded = true;
