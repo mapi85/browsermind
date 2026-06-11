@@ -5,7 +5,7 @@
 // Chaque mode définit le comportement contextualisé de l'agent.
 // Pour ajouter un nouveau mode : ajouter un objet dans BrowserMindModes + clés i18n dans sidepanel.js
 
-window.BrowserMindModes = {
+export const BUILTIN_MODES = {
   libre: {
     id: 'libre',
     icon: '🧭',
@@ -288,48 +288,17 @@ window.BrowserMindModes = {
 };
 
 // ═══════════════════════════════════════════════
-//  Helper functions
+//  Helpers
 // ═══════════════════════════════════════════════
 
-function getMode(modeId) {
-  return BrowserMindModes[modeId] || BrowserMindModes.libre;
-}
-
-function getModeTools(modeId) {
-  const mode = getMode(modeId);
-  if (mode.tools.includes('*')) {
-    return getAllTools();
-  }
-  return getAllTools().filter(t => mode.tools.includes(t.name));
-}
-
-function getAllTools() {
-  return [
-    { name: 'get_page_content', description: 'Obtient le contenu complet de la page', input_schema: { type: 'object', properties: {} } },
-    { name: 'click', description: 'Clique sur un élément', input_schema: { type: 'object', properties: { selector: { type: 'string' }, selector_type: { type: 'string', enum: ['css','text','xpath'] } }, required: ['selector'] } },
-    { name: 'type_text', description: 'Saisit du texte dans un champ', input_schema: { type: 'object', properties: { selector: { type: 'string' }, text: { type: 'string' }, clear_first: { type: 'boolean' } }, required: ['selector','text'] } },
-    { name: 'scroll', description: 'Fait défiler la page', input_schema: { type: 'object', properties: { direction: { type: 'string', enum: ['up','down','top','bottom'] }, amount: { type: 'number' } }, required: ['direction'] } },
-    { name: 'navigate', description: 'Navigue vers une URL', input_schema: { type: 'object', properties: { url: { type: 'string' } }, required: ['url'] } },
-    { name: 'fill_form', description: 'Remplit plusieurs champs', input_schema: { type: 'object', properties: { fields: { type: 'array', items: { type: 'object', properties: { selector: { type: 'string' }, value: { type: 'string' }, field_type: { type: 'string' } } } }, submit: { type: 'boolean' } }, required: ['fields'] } },
-    { name: 'extract_data', description: 'Extrait des données de la page', input_schema: { type: 'object', properties: { data_type: { type: 'string', enum: ['table','list','links','images','custom'] }, selector: { type: 'string' }, format: { type: 'string' } }, required: ['data_type'] } },
-    { name: 'generate_document', description: 'Génère et télécharge un document', input_schema: { type: 'object', properties: { format: { type: 'string', enum: ['csv','html','json','md','txt'] }, content: { type: 'string' }, filename: { type: 'string' } }, required: ['format','content','filename'] } },
-    { name: 'download_file', description: 'Télécharge un fichier depuis une URL', input_schema: { type: 'object', properties: { url: { type: 'string' }, filename: { type: 'string' } }, required: ['url'] } },
-    { name: 'wait', description: 'Attend un élément ou un délai', input_schema: { type: 'object', properties: { selector: { type: 'string' }, milliseconds: { type: 'number' } } } },
-    { name: 'take_screenshot', description: 'Capture d\'écran', input_schema: { type: 'object', properties: {} } },
-    { name: 'api_call', description: 'Appelle une API externe (géocodage, météo, recherche)', input_schema: { type: 'object', properties: { api: { type: 'string', enum: ['nominatim','open_meteo','duckduckgo','rest_countries','wikidata'] }, endpoint: { type: 'string' }, params: { type: 'object' } }, required: ['api'] } },
-    { name: 'web_search', description: 'Recherche sur le web via DuckDuckGo', input_schema: { type: 'object', properties: { query: { type: 'string' }, max_results: { type: 'number' } }, required: ['query'] } },
-    { name: 'new_tab', description: 'Ouvre un nouvel onglet', input_schema: { type: 'object', properties: { url: { type: 'string' }, active: { type: 'boolean' } }, required: ['url'] } }
-  ];
-}
-
-function detectModeFromUrl(url) {
+// Detects a mode from the visited URL. `modes` defaults to the built-in set;
+// pass a merged {builtin + custom} map to include custom modes.
+export function detectModeFromUrl(url, modes = BUILTIN_MODES) {
   if (!url) return null;
-  for (const [modeId, mode] of Object.entries(BrowserMindModes)) {
+  for (const [modeId, mode] of Object.entries(modes)) {
     if (mode.urlPatterns && mode.urlPatterns.length > 0) {
       for (const pattern of mode.urlPatterns) {
-        if (url.includes(pattern)) {
-          return modeId;
-        }
+        if (url.includes(pattern.trim())) return modeId;
       }
     }
   }

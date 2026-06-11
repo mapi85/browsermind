@@ -1,7 +1,7 @@
-const SVG = (path, size = 16) =>
+export const SVG = (path, size = 16) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
 
-const ICONS = {
+export const ICONS = {
   brain: () => SVG('<path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/>'),
 
   bmLogo: () => SVG('<polygon points="64,4 116,34 116,94 64,124 12,94 12,34" fill="#5b4ed8"/><path d="M40 64 C40 50 50 40 64 40 C78 40 88 50 88 64" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M40 64 C40 78 50 88 64 88 C78 88 88 78 88 64" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/><line x1="64" y1="44" x2="64" y2="84" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M90 90 L104 104 M104 104 L90 104 M104 104 L104 90" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'),
@@ -95,9 +95,9 @@ const ICONS = {
   arrowUpRight: () => SVG('<path d="M7 7h10v10"/><path d="M7 17 17 7"/>'),
 };
 
-const ICO = (name, size) => ICONS[name] ? ICONS[name](size) : '';
+export const ICO = (name, size) => ICONS[name] ? ICONS[name](size) : '';
 
-const TOOL_ICONS = {
+export const TOOL_ICONS = {
   click: 'pointer',
   type_text: 'keyboard',
   scroll: 'arrowsUpDown',
@@ -111,7 +111,7 @@ const TOOL_ICONS = {
   generate_document: 'fileOutput',
 };
 
-const ROLE_ICONS = {
+export const ROLE_ICONS = {
   user: 'user',
   assistant: 'sparkles',
   action: 'zap',
@@ -120,7 +120,7 @@ const ROLE_ICONS = {
   export: 'fileDown',
 };
 
-const EXPORT_ICONS = {
+export const EXPORT_ICONS = {
   csv: 'table',
   html: 'code',
   json: 'braces',
@@ -129,7 +129,7 @@ const EXPORT_ICONS = {
   png: 'image',
 };
 
-const PROVIDER_ICONS = {
+export const PROVIDER_ICONS = {
   anthropic: '🟣',
   openai: '🤖',
   xai: '⚡',
@@ -143,22 +143,22 @@ const PROVIDER_ICONS = {
   custom_anthropic: '🔧',
 };
 
-function toolIconSvg(tool) {
+export function toolIconSvg(tool) {
   const name = TOOL_ICONS[tool] || 'zap';
   return ICO(name, 14);
 }
 
-function roleIconSvg(role) {
+export function roleIconSvg(role) {
   const name = ROLE_ICONS[role] || 'messageCircle';
   return ICO(name, 13);
 }
 
-function exportIconSvg(format) {
+export function exportIconSvg(format) {
   const name = EXPORT_ICONS[format] || 'fileDown';
   return ICO(name, 20);
 }
 
-function stepStatusIcon(status) {
+export function stepStatusIcon(status) {
   if (status === 'success' || status === '✅') return ICO('check', 13);
   if (status === 'error' || status === '❌') return ICO('alertTriangle', 13);
   return ICO('clock', 13);

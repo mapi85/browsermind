@@ -1,494 +1,23 @@
 // ═══════════════════════════════════════════════
-//  BrowserMind v1.0.0 — Side Panel Logic
+//  BrowserMind — Side Panel (main module)
 // ═══════════════════════════════════════════════
 
-// ─── TRANSLATIONS ────────────────────────────────
-const I18N = {
-  fr: {
-    placeholder: 'Que voulez-vous faire sur cette page ?',
-    send: 'Envoyer ↗', stop: 'Stop', sendHint: '⏎ Envoyer · Shift+⏎ Nouvelle ligne',
-    summarize: 'Résumer', linksCsv: 'Liens CSV', table: 'Tableau', report: 'Rapport HTML', screenshot: 'Screenshot',
-    quickPromptSummarize: 'Résume le contenu de cette page',
-    quickPromptLinks: 'Extrais tous les liens importants en CSV',
-    quickPromptTable: 'Extrais les données sous forme de tableau HTML téléchargeable',
-    quickPromptReport: 'Génère un rapport HTML de cette page',
-    quickPromptScreenshot: 'Prends une capture d\'écran de la page',
-    newChat: 'Nouveau chat', config: 'Configuration', reportBug: 'Signaler un bug',
-    apiKeyMissing: 'Clé API manquante pour', clickToConfig: '. Cliquez sur ⚙ pour configurer.',
-    themeLight: 'Thème clair/sombre', emptyStateDesc: 'Décrivez ce que vous souhaitez faire.<br>L\'agent naviguera pour vous.',
-    bugPanelTitle: '🐛 Signaler un bug', bugDescLabel: 'Description', bugDescPlaceholder: 'Décrivez ce qui s\'est passé...',
-    bugLogLabel: 'Log capturé', bugHint: '💡 Cliquez "Copier" puis collez dans Claude pour obtenir de l\'aide.',
-    bugCopyBtn: '📋 Copier le rapport', bugCloseBtn: 'Fermer', backToChat: 'Retour au chat',
-    noInternet: 'Pas de connexion internet. Vérifiez votre connexion.',
-    errorColon: 'Erreur:', fieldNotFound: 'Champ non trouvé:', elementNotFound: 'Élément non trouvé:', notFound: 'Non trouvé',
-    noModelSelected: 'Aucun modèle sélectionné', baseUrlNotConfigured: 'URL de base non configurée',
-    thinkingThinking: 'En cours de réflexion', thinkingDone: 'Réflexion terminée',
-    error: 'Erreur', action: 'Action', emptyState: 'Décrivez ce que vous souhaitez faire sur cette page.<br>L\'agent naviguera pour vous.',
-    rateLimit: 'Rate limit. Retry dans', rateLimitWait: 'Rate limit — attente',
-    emptyResponse: 'Le modèle ne répond pas avec des actions. Essayez un autre modèle ou provider.',
-    refusal: 'Refus du modèle:', noAction: '(pas de réflexion à afficher)',
-    actionsInProgress: '(actions en cours...)', done: 'Terminé', iteration: 'Itération',
-    maxIterations: 'Limite de', iterationsReached: ' itérations atteinte.', maxIterationsContinue: 'Limite atteinte. Voulez-vous continuer ?', maxIterationsBtn: '▶ Continuer',
-    toolLabel: { click:'Clic', type_text:'Saisie', scroll:'Défilement', navigate:'Navigation', get_page_content:'Lecture', fill_form:'Formulaire', extract_data:'Extraction', download_file:'Téléchargement', wait:'Attente', take_screenshot:'Capture', generate_document:'Export' },
-    roleLabels: { user: 'Vous', assistant: 'Agent', action: 'Action', error: 'Erreur', system: 'Système', export: 'Export' },
-    statusReady: 'Prêt', statusStopping: '⏹ Arrêt demandé…',
-    configReloaded: '🔄 Configuration rechargée.',
-    provider: 'Provider', model: 'Modèle',
-    noKey: 'Clé API manquante pour', configure: '. Cliquez sur ⚙ pour configurer.',
-    noModel: 'non configuré', noProvider: '— Configurer un provider (⚙) —',
-    noModels: '— configurer les modèles —',
-    statusThinking: '— Réflexion…', statusDone: '✅ Terminé', statusActions: '⚡ action(s)…',
-    apiError: 'Erreur API:', statusRefusal: '❌ Refus du modèle', statusFailEmpty: '❌ Échec: pas de réponse',
-    statusRetry: '🔄 Nouvelle tentative...',
-    tab: 'Onglet', chatCleared: 'Chat effacé', noConnexion: 'Pas de connexion internet. Vérifiez votre connexion.',
-    stepStatus: { pending: '⏳', success: '✅', error: '❌' },
-    thinking: 'Réflexion', inProgress: 'En cours',
-    navConfirmTitle: 'Navigation hors de la page',
-    navConfirmHint: 'L\'agent souhaite quitter cette page. Autoriser ?',
-    navConfirmAlways: 'Toujours autoriser (ne plus demander)',
-    navConfirmOk: 'Autoriser',
-    navConfirmCancel: 'Annuler',
-    footerSupport: '☕ Soutenir',
-    mode: 'Mode', modeLibre: 'Libre', modeVoyage: 'Voyage', modeRecherche: 'Recherche',
-    modeAnalyse: 'Analyse', modeExtraction: 'Extraction', modeAdministratif: 'Administratif',
-    modeShopping: 'Shopping', modeVeille: 'Veille', modeCuisine: 'Cuisine',
-    modeImmobilier: 'Immobilier', modeEmploi: 'Emploi', modeEducation: 'Éducation',
-    modeAutoDetected: 'Mode détecté automatiquement',
-    qaSearchHotel: 'Hébergement', qaSearchFlight: 'Vol', qaSearchTrain: 'Train',
-    qaItinerary: 'Itinéraire', qaTripPlan: 'Plan voyage', qaExportTrip: 'Export voyage',
-    qaWebSearch: 'Recherche web', qaSummarizePage: 'Résumer', qaDeepen: 'Approfondir',
-    qaMultiSynth: 'Synthèse', qaExportSearch: 'Export recherche',
-    qaAnalyzePage: 'Analyser', qaCompare: 'Comparer', qaDataTable: 'Tableau',
-    qaAnalysisReport: 'Rapport', qaExportJSON: 'Export JSON',
-    qaExtractTable: 'Tableau→CSV', qaExtractList: 'Liste→CSV', qaExtractLinks: 'Liens→CSV',
-    qaExtractJSON: 'JSON', qaExtractMD: 'Markdown',
-    qaFillForm: 'Remplir', qaCheckFields: 'Vérifier', qaScreenshot: 'Capture',
-    qaExportPDF: 'PDF', qaPrepareLetter: 'Courrier',
-    qaComparePrice: 'Comparer prix', qaExtractReviews: 'Avis', qaBestValue: 'Qualité/prix',
-    qaPriceHistory: 'Historique', qaShoppingList: 'Liste courses',
-    qaSummarizeNews: 'Actualités', qaWatchTopic: 'Surveiller', qaVeuilleFolder: 'Classeur',
-    qaExportVeille: 'Export veille', qaDeepSearch: 'Recherche profonde',
-    qaSearchRecipe: 'Recette', qaShoppingListCuisine: 'Courses', qaConvertMeasures: 'Convertir',
-    qaMealPlan: 'Plan repas', qaExportRecipe: 'Export recette',
-    qaSearchProperty: 'Rechercher', qaCompareProperties: 'Comparer', qaEstimate: 'Estimer',
-    qaTrackingSheet: 'Suivi', qaPropertyReport: 'Rapport',
-    qaSearchJobs: 'Offres', qaExtractOffers: 'Extraire', qaPrepareApp: 'Candidature',
-    qaFillApplication: 'Postuler', qaTrackingBoard: 'Suivi candidat',
-    qaExplain: 'Expliquer', qaSummarizeCourse: 'Résumé cours', qaRevisionSheet: 'Fiche révision',
-    qaDeepenLearning: 'Approfondir', qaGenerateQuiz: 'Quiz',
-  },
-  en: {
-    placeholder: 'What do you want to do on this page?',
-    send: 'Send ↗', stop: 'Stop', sendHint: '⏎ Send · Shift+⏎ New line',
-    summarize: 'Summarize', linksCsv: 'Links CSV', table: 'Table', report: 'HTML Report', screenshot: 'Screenshot',
-    quickPromptSummarize: 'Summarize the content of this page',
-    quickPromptLinks: 'Extract all important links as CSV',
-    quickPromptTable: 'Extract data as downloadable HTML table',
-    quickPromptReport: 'Generate an HTML report of this page',
-    quickPromptScreenshot: 'Take a screenshot of the page',
-    newChat: 'New chat', config: 'Configuration', reportBug: 'Report a bug',
-    apiKeyMissing: 'Missing API key for', clickToConfig: '. Click on ⚙ to configure.',
-    themeLight: 'Light/dark theme', emptyStateDesc: 'Describe what you want to do on this page.<br>The agent will navigate for you.',
-    bugPanelTitle: '🐛 Report a bug', bugDescLabel: 'Description', bugDescPlaceholder: 'Describe what happened...',
-    bugLogLabel: 'Captured log', bugHint: '💡 Click "Copy" then paste in Claude for help.',
-    bugCopyBtn: '📋 Copy report', bugCloseBtn: 'Close', backToChat: 'Back to chat',
-    noInternet: 'No internet connection. Check your connection.',
-    errorColon: 'Error:', fieldNotFound: 'Field not found:', elementNotFound: 'Element not found:', notFound: 'Not found',
-    noModelSelected: 'No model selected', baseUrlNotConfigured: 'Base URL not configured',
-    thinkingThinking: 'Thinking...', thinkingDone: 'Thought done',
-    error: 'Error', action: 'Action', emptyState: 'Describe what you want to do on this page.<br>The agent will navigate for you.',
-    rateLimit: 'Rate limit. Retrying in', rateLimitWait: 'Rate limit — wait',
-    emptyResponse: 'Model is not responding with actions. Try another model or provider.',
-    refusal: 'Model refusal:', noAction: '(no thinking to display)',
-    actionsInProgress: '(actions in progress...)', done: 'Done', iteration: 'Iteration',
-    maxIterations: 'Limit of', iterationsReached: ' iterations reached.', maxIterationsContinue: 'Limit reached. Continue?', maxIterationsBtn: '▶ Continue',
-    toolLabel: { click:'Click', type_text:'Type', scroll:'Scroll', navigate:'Navigate', get_page_content:'Read', fill_form:'Form', extract_data:'Extract', download_file:'Download', wait:'Wait', take_screenshot:'Screenshot', generate_document:'Export' },
-    roleLabels: { user: 'You', assistant: 'Agent', action: 'Action', error: 'Error', system: 'System', export: 'Export' },
-    statusReady: 'Ready', statusStopping: '⏹ Stop requested…',
-    configReloaded: '🔄 Configuration reloaded.',
-    provider: 'Provider', model: 'Model',
-    noKey: 'Missing API key for', configure: '. Click on ⚙ to configure.',
-    noModel: 'not configured', noProvider: '— Configure a provider (⚙) —',
-    noModels: '— configure models —',
-    statusThinking: '— Thinking…', statusDone: '✅ Done', statusActions: '⚡ action(s)…',
-    apiError: 'API Error:', statusRefusal: '❌ Model refusal', statusFailEmpty: '❌ Failed: no response',
-    statusRetry: '🔄 Retrying...',
-    tab: 'Tab', chatCleared: 'Chat cleared', noConnexion: 'No internet connection. Check your connection.',
-    stepStatus: { pending: '⏳', success: '✅', error: '❌' },
-    thinking: 'Thinking', inProgress: 'In progress',
-    navConfirmTitle: 'Navigation away from page',
-    navConfirmHint: 'The agent wants to leave this page. Allow it?',
-    navConfirmAlways: 'Always allow (don\'t ask again)',
-    navConfirmOk: 'Allow',
-    navConfirmCancel: 'Cancel',
-    footerSupport: '☕ Support',
-    mode: 'Mode', modeLibre: 'Free', modeVoyage: 'Travel', modeRecherche: 'Research',
-    modeAnalyse: 'Analysis', modeExtraction: 'Extraction', modeAdministratif: 'Admin',
-    modeShopping: 'Shopping', modeVeille: 'Monitoring', modeCuisine: 'Cooking',
-    modeImmobilier: 'Real Estate', modeEmploi: 'Jobs', modeEducation: 'Education',
-    modeAutoDetected: 'Auto-detected mode',
-    qaSearchHotel: 'Accommodation', qaSearchFlight: 'Flight', qaSearchTrain: 'Train',
-    qaItinerary: 'Itinerary', qaTripPlan: 'Trip plan', qaExportTrip: 'Export trip',
-    qaWebSearch: 'Web search', qaSummarizePage: 'Summarize', qaDeepen: 'Deepen',
-    qaMultiSynth: 'Synthesis', qaExportSearch: 'Export search',
-    qaAnalyzePage: 'Analyze', qaCompare: 'Compare', qaDataTable: 'Table',
-    qaAnalysisReport: 'Report', qaExportJSON: 'Export JSON',
-    qaExtractTable: 'Table→CSV', qaExtractList: 'List→CSV', qaExtractLinks: 'Links→CSV',
-    qaExtractJSON: 'JSON', qaExtractMD: 'Markdown',
-    qaFillForm: 'Fill form', qaCheckFields: 'Check fields', qaScreenshot: 'Screenshot',
-    qaExportPDF: 'PDF', qaPrepareLetter: 'Letter',
-    qaComparePrice: 'Compare prices', qaExtractReviews: 'Reviews', qaBestValue: 'Best value',
-    qaPriceHistory: 'Price history', qaShoppingList: 'Shopping list',
-    qaSummarizeNews: 'News', qaWatchTopic: 'Monitor', qaVeuilleFolder: 'Folder',
-    qaExportVeille: 'Export monitoring', qaDeepSearch: 'Deep search',
-    qaSearchRecipe: 'Recipe', qaShoppingListCuisine: 'Grocery list', qaConvertMeasures: 'Convert',
-    qaMealPlan: 'Meal plan', qaExportRecipe: 'Export recipe',
-    qaSearchProperty: 'Search', qaCompareProperties: 'Compare', qaEstimate: 'Estimate',
-    qaTrackingSheet: 'Tracking sheet', qaPropertyReport: 'Report',
-    qaSearchJobs: 'Job offers', qaExtractOffers: 'Extract', qaPrepareApp: 'Application',
-    qaFillApplication: 'Apply', qaTrackingBoard: 'Tracking board',
-    qaExplain: 'Explain', qaSummarizeCourse: 'Course summary', qaRevisionSheet: 'Revision sheet',
-    qaDeepenLearning: 'Deepen', qaGenerateQuiz: 'Quiz',
-  },
-  es: {
-    placeholder: '¿Qué quieres hacer en esta página?',
-    send: 'Enviar ↗', stop: 'Parar', sendHint: '⏎ Enviar · Shift+⏎ Nueva línea',
-    summarize: 'Resumir', linksCsv: 'Enlaces CSV', table: 'Tabla', report: 'Informe HTML', screenshot: 'Captura',
-    quickPromptSummarize: 'Resume el contenido de esta página',
-    quickPromptLinks: 'Extrae todos los enlaces importantes en CSV',
-    quickPromptTable: 'Extrae los datos en forma de tabla HTML descargable',
-    quickPromptReport: 'Genera un informe HTML de esta página',
-    quickPromptScreenshot: 'Toma una captura de pantalla de la página',
-    newChat: 'Nuevo chat', config: 'Configuración', reportBug: 'Reportar un bug',
-    apiKeyMissing: 'Falta clave API para', clickToConfig: '. Clic en ⚙ para configurar.',
-    themeLight: 'Tema claro/oscuro', emptyStateDesc: 'Describe lo que quieres hacer en esta página.<br>El agente navegará por ti.',
-    bugPanelTitle: '🐛 Reportar un bug', bugDescLabel: 'Descripción', bugDescPlaceholder: 'Describe lo que pasó...',
-    bugLogLabel: 'Log capturado', bugHint: '💡 Haz clic en "Copiar" luego pega en Claude para obtener ayuda.',
-    bugCopyBtn: '📋 Copiar informe', bugCloseBtn: 'Cerrar', backToChat: 'Volver al chat',
-    noInternet: 'Sin conexión a internet.',
-    errorColon: 'Error:', fieldNotFound: 'Campo no encontrado:', elementNotFound: 'Elemento no encontrado:', notFound: 'No encontrado',
-    thinkingThinking: 'Pensando...', thinkingDone: 'Pensamiento terminado',
-    error: 'Error', action: 'Acción', emptyState: 'Describe lo que quieres hacer en esta página.<br>El agente navegará por ti.',
-    rateLimit: 'Límite. Reintento en', rateLimitWait: 'Límite — espera',
-    emptyResponse: 'El modelo no responde con acciones. Prueba otro modelo o proveedor.',
-    refusal: 'Rechazo del modelo:', noAction: '(no hay reflexión)',
-    actionsInProgress: '(acciones en progreso...)', done: 'Hecho', iteration: 'Iteración',
-    maxIterations: 'Límite de', iterationsReached: ' iteraciones alcanzadas.', maxIterationsContinue: 'Límite alcanzado. ¿Continuar?', maxIterationsBtn: '▶ Continuar',
-    toolLabel: { click:'Clic', type_text:'Escribir', scroll:'Desplazar', navigate:'Navegar', get_page_content:'Leer', fill_form:'Formulario', extract_data:'Extraer', download_file:'Descargar', wait:'Esperar', take_screenshot:'Captura', generate_document:'Exportar' },
-    roleLabels: { user: 'Tú', assistant: 'Agente', action: 'Acción', error: 'Error', system: 'Sistema', export: 'Exportar' },
-    statusReady: 'Listo', statusStopping: '⏹ Parada solicitada…',
-    configReloaded: '🔄 Configuración recargada.',
-    provider: 'Proveedor', model: 'Modelo',
-    noKey: 'Falta clave API para', configure: '. Clic en ⚙ para configurar.',
-    noModel: 'no configurado', noProvider: '— Configurar proveedor (⚙) —',
-    noModels: '— configurar modelos —',
-    statusThinking: '— Pensando…', statusDone: '✅ Hecho', statusActions: '⚡ acción(es)…',
-    apiError: 'Error API:', statusRefusal: '❌ Rechazo del modelo', statusFailEmpty: '❌ Error: sin respuesta',
-    statusRetry: '🔄 Reintentando...',
-    noModelSelected: 'Ningún modelo seleccionado', baseUrlNotConfigured: 'URL base no configurada',
-    tab: 'Pestaña', chatCleared: 'Chat borrado', noConnexion: 'Sin conexión a internet.',
-    stepStatus: { pending: '⏳', success: '✅', error: '❌' },
-    thinking: 'Pensando', inProgress: 'En progreso',
-    navConfirmTitle: 'Navegación fuera de la página',
-    navConfirmHint: 'El agente quiere abandonar esta página. ¿Permitir?',
-    navConfirmAlways: 'Siempre permitir (no preguntar más)',
-    navConfirmOk: 'Permitir',
-    navConfirmCancel: 'Cancelar',
-    footerSupport: '☕ Apoyar',
-    mode: 'Modo', modeLibre: 'Libre', modeVoyage: 'Viaje', modeRecherche: 'Búsqueda',
-    modeAnalyse: 'Análisis', modeExtraction: 'Extracción', modeAdministratif: 'Admin',
-    modeShopping: 'Compras', modeVeille: 'Vigilancia', modeCuisine: 'Cocina',
-    modeImmobilier: 'Inmobiliaria', modeEmploi: 'Empleo', modeEducation: 'Educación',
-    modeAutoDetected: 'Modo detectado automáticamente',
-    qaSearchHotel: 'Alojamiento', qaSearchFlight: 'Vuelo', qaSearchTrain: 'Tren',
-    qaItinerary: 'Itinerario', qaTripPlan: 'Plan de viaje', qaExportTrip: 'Exportar viaje',
-    qaWebSearch: 'Búsqueda web', qaSummarizePage: 'Resumir', qaDeepen: 'Profundizar',
-    qaMultiSynth: 'Síntesis', qaExportSearch: 'Exportar búsqueda',
-    qaAnalyzePage: 'Analizar', qaCompare: 'Comparar', qaDataTable: 'Tabla',
-    qaAnalysisReport: 'Informe', qaExportJSON: 'Exportar JSON',
-    qaExtractTable: 'Tabla→CSV', qaExtractList: 'Lista→CSV', qaExtractLinks: 'Links→CSV',
-    qaExtractJSON: 'JSON', qaExtractMD: 'Markdown',
-    qaFillForm: 'Rellenar', qaCheckFields: 'Verificar', qaScreenshot: 'Captura',
-    qaExportPDF: 'PDF', qaPrepareLetter: 'Carta',
-    qaComparePrice: 'Comparar precios', qaExtractReviews: 'Reseñas', qaBestValue: 'Calidad/precio',
-    qaPriceHistory: 'Historial', qaShoppingList: 'Lista compras',
-    qaSummarizeNews: 'Noticias', qaWatchTopic: 'Vigilar', qaVeuilleFolder: 'Carpeta',
-    qaExportVeille: 'Exportar vigilancia', qaDeepSearch: 'Búsqueda profunda',
-    qaSearchRecipe: 'Receta', qaShoppingListCuisine: 'Compras', qaConvertMeasures: 'Convertir',
-    qaMealPlan: 'Plan comidas', qaExportRecipe: 'Exportar receta',
-    qaSearchProperty: 'Buscar', qaCompareProperties: 'Comparar', qaEstimate: 'Estimar',
-    qaTrackingSheet: 'Seguimiento', qaPropertyReport: 'Informe',
-    qaSearchJobs: 'Ofertas', qaExtractOffers: 'Extraer', qaPrepareApp: 'Candidatura',
-    qaFillApplication: 'Postular', qaTrackingBoard: 'Panel seguimiento',
-    qaExplain: 'Explicar', qaSummarizeCourse: 'Resumen curso', qaRevisionSheet: 'Ficha revisión',
-    qaDeepenLearning: 'Profundizar', qaGenerateQuiz: 'Quiz',
-  },
-  it: {
-    placeholder: 'Cosa vuoi fare su questa pagina?',
-    send: 'Invia ↗', stop: 'Stop', sendHint: '⏎ Invia · Shift+⏎ Nuova riga',
-    summarize: 'Riassumi', linksCsv: 'Link CSV', table: 'Tabella', report: 'Rapporto HTML', screenshot: 'Screenshot',
-    quickPromptSummarize: 'Riassumi il contenuto di questa pagina',
-    quickPromptLinks: 'Estrai tutti i link importanti in CSV',
-    quickPromptTable: 'Estrai i dati in forma di tabella HTML scaricabile',
-    quickPromptReport: 'Genera un rapporto HTML di questa pagina',
-    quickPromptScreenshot: 'Fai uno screenshot della pagina',
-    newChat: 'Nuova chat', config: 'Configurazione', reportBug: 'Segnala un bug',
-    apiKeyMissing: 'Manca chiave API per', clickToConfig: '. Clic su ⚙ per configurare.',
-    themeLight: 'Tema chiaro/scuro', emptyStateDesc: 'Descrivi cosa vuoi fare su questa pagina.<br>L\'agente navigherà per te.',
-    bugPanelTitle: '🐛 Segnala un bug', bugDescLabel: 'Descrizione', bugDescPlaceholder: 'Descrivi cosa è successo...',
-    bugLogLabel: 'Log catturato', bugHint: '💡 Clicca "Copia" poi incolla in Claude per ottenere aiuto.',
-    bugCopyBtn: '📋 Copia rapporto', bugCloseBtn: 'Chiudi', backToChat: 'Torna alla chat',
-    noInternet: 'Nessuna connessione internet.',
-    errorColon: 'Errore:', fieldNotFound: 'Campo non trovato:', elementNotFound: 'Elemento non trovato:', notFound: 'Non trovato',
-    thinkingThinking: 'Pensando...', thinkingDone: 'Pensiero completato',
-    error: 'Errore', action: 'Azione', emptyState: 'Descrivi cosa vuoi fare su questa pagina.<br>L\'agente navigherà per te.',
-    rateLimit: 'Rate limit. Riprovo in', rateLimitWait: 'Rate limit — attesa',
-    emptyResponse: 'Il modello non risponde con azioni. Prova un altro modello o provider.',
-    refusal: 'Rifiuto del modello:', noAction: '(nessun pensiero da mostrare)',
-    actionsInProgress: '(azioni in corso...)', done: 'Fatto', iteration: 'Iterazione',
-    maxIterations: 'Limite di', iterationsReached: ' iterazioni raggiunto.', maxIterationsContinue: 'Limite raggiunto. Continuare?', maxIterationsBtn: '▶ Continua',
-    toolLabel: { click:'Clic', type_text:'Scrivi', scroll:'Scorri', navigate:'Naviga', get_page_content:'Leggi', fill_form:'Modulo', extract_data:'Estrai', download_file:'Scarica', wait:'Aspetta', take_screenshot:'Screenshot', generate_document:'Esporta' },
-    roleLabels: { user: 'Tu', assistant: 'Agente', action: 'Azione', error: 'Errore', system: 'Sistema', export: 'Esporta' },
-    statusReady: 'Pronto', statusStopping: '⏹ Arresto richiesto…',
-    configReloaded: '🔄 Configurazione ricaricata.',
-    provider: 'Provider', model: 'Modello',
-    noKey: 'Manca chiave API per', configure: '. Clic su ⚙ per configurare.',
-    noModel: 'non configurato', noProvider: '— Configura provider (⚙) —',
-    noModels: '— configura modelli —',
-    statusThinking: '— Pensando…', statusDone: '✅ Fatto', statusActions: '⚡ azione(i)…',
-    apiError: 'Errore API:', statusRefusal: '❌ Rifiuto del modello', statusFailEmpty: '❌ Errore: nessuna risposta',
-    statusRetry: '🔄 Riprovando...',
-    noModelSelected: 'Nessun modello selezionato', baseUrlNotConfigured: 'URL base non configurato',
-    tab: 'Scheda', chatCleared: 'Chat cancellato', noConnexion: 'Nessuna connessione internet.',
-    stepStatus: { pending: '⏳', success: '✅', error: '❌' },
-    thinking: 'Pensando', inProgress: 'In corso',
-    navConfirmTitle: 'Navigazione fuori dalla pagina',
-    navConfirmHint: 'L\'agente vuole lasciare questa pagina. Consentire?',
-    navConfirmAlways: 'Consenti sempre (non chiedere più)',
-    navConfirmOk: 'Consenti',
-    navConfirmCancel: 'Annulla',
-    footerSupport: '☕ Sostieni',
-    mode: 'Modalità', modeLibre: 'Libero', modeVoyage: 'Viaggio', modeRecherche: 'Ricerca',
-    modeAnalyse: 'Analisi', modeExtraction: 'Estrazione', modeAdministratif: 'Amministrativo',
-    modeShopping: 'Shopping', modeVeille: 'Monitoraggio', modeCuisine: 'Cucina',
-    modeImmobilier: 'Immobiliare', modeEmploi: 'Lavoro', modeEducation: 'Educazione',
-    modeAutoDetected: 'Modalità rilevata automaticamente',
-    qaSearchHotel: 'Alloggio', qaSearchFlight: 'Volo', qaSearchTrain: 'Treno',
-    qaItinerary: 'Itinerario', qaTripPlan: 'Piano viaggio', qaExportTrip: 'Esporta viaggio',
-    qaWebSearch: 'Ricerca web', qaSummarizePage: 'Riassumi', qaDeepen: 'Approfondisci',
-    qaMultiSynth: 'Sintesi', qaExportSearch: 'Esporta ricerca',
-    qaAnalyzePage: 'Analizza', qaCompare: 'Confronta', qaDataTable: 'Tabella',
-    qaAnalysisReport: 'Rapporto', qaExportJSON: 'Esporta JSON',
-    qaExtractTable: 'Tabella→CSV', qaExtractList: 'Lista→CSV', qaExtractLinks: 'Link→CSV',
-    qaExtractJSON: 'JSON', qaExtractMD: 'Markdown',
-    qaFillForm: 'Compila', qaCheckFields: 'Verifica', qaScreenshot: 'Cattura',
-    qaExportPDF: 'PDF', qaPrepareLetter: 'Lettera',
-    qaComparePrice: 'Confronta prezzi', qaExtractReviews: 'Recensioni', qaBestValue: 'Qualità/prezzo',
-    qaPriceHistory: 'Storico prezzi', qaShoppingList: 'Lista spesa',
-    qaSummarizeNews: 'Notizie', qaWatchTopic: 'Monitora', qaVeuilleFolder: 'Cartella',
-    qaExportVeille: 'Esporta monitoraggio', qaDeepSearch: 'Ricerca approfondita',
-    qaSearchRecipe: 'Ricetta', qaShoppingListCuisine: 'Spesa', qaConvertMeasures: 'Converti',
-    qaMealPlan: 'Piano pasti', qaExportRecipe: 'Esporta ricetta',
-    qaSearchProperty: 'Cerca', qaCompareProperties: 'Confronta', qaEstimate: 'Stima',
-    qaTrackingSheet: 'Foglio tracciamento', qaPropertyReport: 'Rapporto',
-    qaSearchJobs: 'Offerte', qaExtractOffers: 'Estrai', qaPrepareApp: 'Candidatura',
-    qaFillApplication: 'Candidati', qaTrackingBoard: 'Dashboard',
-    qaExplain: 'Spiega', qaSummarizeCourse: 'Riassunto corso', qaRevisionSheet: 'Scheda revisione',
-    qaDeepenLearning: 'Approfondisci', qaGenerateQuiz: 'Quiz',
-  },
-  de: {
-    placeholder: 'Was möchten Sie auf dieser Seite tun?',
-    send: 'Senden ↗', stop: 'Stopp', sendHint: '⏎ Senden · Shift+⏎ Neue Zeile',
-    summarize: 'Zusammenfassen', linksCsv: 'Links CSV', table: 'Tabelle', report: 'HTML-Bericht', screenshot: 'Screenshot',
-    quickPromptSummarize: 'Zusammenfassung des Seiteninhalts',
-    quickPromptLinks: 'Alle wichtigen Links als CSV extrahieren',
-    quickPromptTable: 'Daten als herunterladbare HTML-Tabelle extrahieren',
-    quickPromptReport: 'HTML-Bericht dieser Seite erstellen',
-    quickPromptScreenshot: 'Screenshot der Seite aufnehmen',
-    newChat: 'Neuer Chat', config: 'Konfiguration', reportBug: 'Bug melden',
-    apiKeyMissing: 'API-Schlüssel fehlt für', clickToConfig: '. Klicken Sie auf ⚙ zum Konfigurieren.',
-    themeLight: 'Hell/Dunkel Modus', emptyStateDesc: 'Beschreiben Sie, was Sie auf dieser Seite tun möchten.<br>Der Agent navigiert für Sie.',
-    bugPanelTitle: '🐛 Bug melden', bugDescLabel: 'Beschreibung', bugDescPlaceholder: 'Beschreiben Sie, was passiert ist...',
-    bugLogLabel: 'Erfasstes Log', bugHint: '💡 Klicken Sie auf "Kopieren" und fügen Sie es in Claude ein, um Hilfe zu erhalten.',
-    bugCopyBtn: '📋 Bericht kopieren', bugCloseBtn: 'Schließen', backToChat: 'Zurück zum Chat',
-    noInternet: 'Keine Internetverbindung.',
-    errorColon: 'Fehler:', fieldNotFound: 'Feld nicht gefunden:', elementNotFound: 'Element nicht gefunden:', notFound: 'Nicht gefunden',
-    thinkingThinking: 'Denke...', thinkingDone: 'Nachdenken beendet',
-    error: 'Fehler', action: 'Aktion', emptyState: 'Beschreiben Sie, was Sie auf dieser Seite tun möchten.<br>Der Agent navigiert für Sie.',
-    rateLimit: 'Rate limit. Wiederhole in', rateLimitWait: 'Rate limit — warte',
-    emptyResponse: 'Modell antwortet nicht mit Aktionen. Versuchen Sie ein anderes Modell oder Provider.',
-    refusal: 'Modell Verweigerung:', noAction: '(kein Denken anzuzeigen)',
-    actionsInProgress: '(Aktionen in Arbeit...)', done: 'Fertig', iteration: 'Iteration',
-    maxIterations: 'Grenze von', iterationsReached: ' Iterationen erreicht.', maxIterationsContinue: 'Grenze erreicht. Fortfahren?', maxIterationsBtn: '▶ Fortfahren',
-    toolLabel: { click:'Klick', type_text:'Eingeben', scroll:'Scrollen', navigate:'Navigieren', get_page_content:'Lesen', fill_form:'Formular', extract_data:'Extrahieren', download_file:'Herunterladen', wait:'Warten', take_screenshot:'Screenshot', generate_document:'Exportieren' },
-    roleLabels: { user: 'Du', assistant: 'Agent', action: 'Aktion', error: 'Fehler', system: 'System', export: 'Export' },
-    statusReady: 'Bereit', statusStopping: '⏹ Stopp angefordert…',
-    configReloaded: '🔄 Konfiguration neu geladen.',
-    provider: 'Provider', model: 'Modell',
-    noKey: 'API-Schlüssel fehlt für', configure: '. Klicken Sie auf ⚙ zum Konfigurieren.',
-    noModel: 'nicht konfiguriert', noProvider: '— Provider konfigurieren (⚙) —',
-    noModels: '— Modelle konfigurieren —',
-    statusThinking: '— Denke…', statusDone: '✅ Fertig', statusActions: '⚡ Aktion(en)…',
-    apiError: 'API-Fehler:', statusRefusal: '❌ Modell Verweigerung', statusFailEmpty: '❌ Fehler: keine Antwort',
-    statusRetry: '🔄 Wiederhole...',
-    noModelSelected: 'Kein Modell ausgewählt', baseUrlNotConfigured: 'Basis-URL nicht konfiguriert',
-    tab: 'Tab', chatCleared: 'Chat gelöscht', noConnexion: 'Keine Internetverbindung.',
-    stepStatus: { pending: '⏳', success: '✅', error: '❌' },
-    thinking: 'Denken', inProgress: 'In Bearbeitung',
-    navConfirmTitle: 'Navigation von der Seite weg',
-    navConfirmHint: 'Der Agent möchte diese Seite verlassen. Erlauben?',
-    navConfirmAlways: 'Immer erlauben (nicht mehr fragen)',
-    navConfirmOk: 'Erlauben',
-    navConfirmCancel: 'Abbrechen',
-    footerSupport: '☕ Unterstützen',
-    mode: 'Modus', modeLibre: 'Frei', modeVoyage: 'Reise', modeRecherche: 'Suche',
-    modeAnalyse: 'Analyse', modeExtraction: 'Extraktion', modeAdministratif: 'Verwaltung',
-    modeShopping: 'Shopping', modeVeille: 'Überwachung', modeCuisine: 'Kochen',
-    modeImmobilier: 'Immobilien', modeEmploi: 'Arbeit', modeEducation: 'Bildung',
-    modeAutoDetected: 'Modus automatisch erkannt',
-    qaSearchHotel: 'Unterkunft', qaSearchFlight: 'Flug', qaSearchTrain: 'Zug',
-    qaItinerary: 'Reiseroute', qaTripPlan: 'Reiseplan', qaExportTrip: 'Reise exportieren',
-    qaWebSearch: 'Websuche', qaSummarizePage: 'Zusammenfassen', qaDeepen: 'Vertiefen',
-    qaMultiSynth: 'Synthese', qaExportSearch: 'Suche exportieren',
-    qaAnalyzePage: 'Analysieren', qaCompare: 'Vergleichen', qaDataTable: 'Tabelle',
-    qaAnalysisReport: 'Bericht', qaExportJSON: 'JSON exportieren',
-    qaExtractTable: 'Tabelle→CSV', qaExtractList: 'Liste→CSV', qaExtractLinks: 'Links→CSV',
-    qaExtractJSON: 'JSON', qaExtractMD: 'Markdown',
-    qaFillForm: 'Formular ausfüllen', qaCheckFields: 'Felder prüfen', qaScreenshot: 'Screenshot',
-    qaExportPDF: 'PDF', qaPrepareLetter: 'Brief',
-    qaComparePrice: 'Preise vergleichen', qaExtractReviews: 'Bewertungen', qaBestValue: 'Preis/Leistung',
-    qaPriceHistory: 'Preisverlauf', qaShoppingList: 'Einkaufsliste',
-    qaSummarizeNews: 'Nachrichten', qaWatchTopic: 'Überwachen', qaVeuilleFolder: 'Ordner',
-    qaExportVeille: 'Überwachung exportieren', qaDeepSearch: 'Tiefensuche',
-    qaSearchRecipe: 'Rezept', qaShoppingListCuisine: 'Einkauf', qaConvertMeasures: 'Umrechnen',
-    qaMealPlan: 'Mahlzeitenplan', qaExportRecipe: 'Rezept exportieren',
-    qaSearchProperty: 'Suchen', qaCompareProperties: 'Vergleichen', qaEstimate: 'Schätzen',
-    qaTrackingSheet: 'Verfolgung', qaPropertyReport: 'Bericht',
-    qaSearchJobs: 'Stellenangebote', qaExtractOffers: 'Extrahieren', qaPrepareApp: 'Bewerbung',
-    qaFillApplication: 'Bewerben', qaTrackingBoard: 'Verfolgungstafel',
-    qaExplain: 'Erklären', qaSummarizeCourse: 'Kurs zusammenfassen', qaRevisionSheet: 'Lernzettel',
-    qaDeepenLearning: 'Vertiefen', qaGenerateQuiz: 'Quiz',
-  },
-  pt: {
-    placeholder: 'O que você quer fazer nesta página?',
-    send: 'Enviar ↗', stop: 'Parar', sendHint: '⏎ Enviar · Shift+⏎ Nova linha',
-    summarize: 'Resumir', linksCsv: 'Links CSV', table: 'Tabela', report: 'Relatório HTML', screenshot: 'Screenshot',
-    quickPromptSummarize: 'Resuma o conteúdo desta página',
-    quickPromptLinks: 'Extraia todos os links importantes em CSV',
-    quickPromptTable: 'Extraia os dados em forma de tabela HTML baixável',
-    quickPromptReport: 'Gere um relatório HTML desta página',
-    quickPromptScreenshot: 'Tire uma captura de tela da página',
-    newChat: 'Novo chat', config: 'Configuração', reportBug: 'Reportar um bug',
-    apiKeyMissing: 'Chave API ausente para', clickToConfig: '. Clique em ⚙ para configurar.',
-    themeLight: 'Tema claro/escuro', emptyStateDesc: 'Descreva o que você quer fazer nesta página.<br>O agente navegará por você.',
-    bugPanelTitle: '🐛 Reportar um bug', bugDescLabel: 'Descrição', bugDescPlaceholder: 'Descreva o que aconteceu...',
-    bugLogLabel: 'Log capturado', bugHint: '💡 Clique em "Copiar" e cole no Claude para obter ajuda.',
-    bugCopyBtn: '📋 Copiar relatório', bugCloseBtn: 'Fechar', backToChat: 'Voltar ao chat',
-    noInternet: 'Sem conexão com a internet.',
-    errorColon: 'Erro:', fieldNotFound: 'Campo não encontrado:', elementNotFound: 'Elemento não encontrado:', notFound: 'Não encontrado',
-    thinkingThinking: 'Pensando...', thinkingDone: 'Pensamento concluído',
-    error: 'Erro', action: 'Ação', emptyState: 'Descreva o que você quer fazer nesta página.<br>O agente navegará por você.',
-    rateLimit: 'Rate limit. Tentando em', rateLimitWait: 'Rate limit — esperando',
-    emptyResponse: 'Modelo não responde com ações. Tente outro modelo ou provedor.',
-    refusal: 'Recusa do modelo:', noAction: '(nenhum pensamento para exibir)',
-    actionsInProgress: '(ações em progresso...)', done: 'Feito', iteration: 'Iteração',
-    maxIterations: 'Limite de', iterationsReached: ' iterações atingidas.', maxIterationsContinue: 'Limite atingido. Continuar?', maxIterationsBtn: '▶ Continuar',
-    toolLabel: { click:'Clic', type_text:'Digitar', scroll:'Rolar', navigate:'Navegar', get_page_content:'Ler', fill_form:'Formulário', extract_data:'Extrair', download_file:'Baixar', wait:'Aguardar', take_screenshot:'Screenshot', generate_document:'Exportar' },
-    roleLabels: { user: 'Você', assistant: 'Agente', action: 'Ação', error: 'Erro', system: 'Sistema', export: 'Exportar' },
-    statusReady: 'Pronto', statusStopping: '⏹ Parada solicitada…',
-    configReloaded: '🔄 Configuração recarregada.',
-    provider: 'Provedor', model: 'Modelo',
-    noKey: 'Chave API ausente para', configure: '. Clique em ⚙ para configurar.',
-    noModel: 'não configurado', noProvider: '— Configurar provedor (⚙) —',
-    noModels: '— configurar modelos —',
-    statusThinking: '— Pensando…', statusDone: '✅ Feito', statusActions: '⚡ ação(ões)…',
-    apiError: 'Erro API:', statusRefusal: '❌ Recusa do modelo', statusFailEmpty: '❌ Erro: sem resposta',
-    statusRetry: '🔄 Tentando novamente...',
-    tab: 'Aba', chatCleared: 'Chat apagado', noConnexion: 'Sem conexão com a internet.',
-    stepStatus: { pending: '⏳', success: '✅', error: '❌' },
-    thinking: 'Pensando', inProgress: 'Em progresso',
-    noModelSelected: 'Nenhum modelo selecionado', baseUrlNotConfigured: 'URL base não configurada',
-    navConfirmTitle: 'Navegação para fora da página',
-    navConfirmHint: 'O agente quer sair desta página. Permitir?',
-    navConfirmAlways: 'Sempre permitir (não perguntar mais)',
-    navConfirmOk: 'Permitir',
-    navConfirmCancel: 'Cancelar',
-    footerSupport: '☕ Apoiar',
-    mode: 'Modo', modeLibre: 'Livre', modeVoyage: 'Viagem', modeRecherche: 'Pesquisa',
-    modeAnalyse: 'Análise', modeExtraction: 'Extração', modeAdministratif: 'Administrativo',
-    modeShopping: 'Compras', modeVeille: 'Monitoramento', modeCuisine: 'Culinária',
-    modeImmobilier: 'Imobiliário', modeEmploi: 'Emprego', modeEducation: 'Educação',
-    modeAutoDetected: 'Modo detectado automaticamente',
-    qaSearchHotel: 'Acomodação', qaSearchFlight: 'Voo', qaSearchTrain: 'Trem',
-    qaItinerary: 'Itinerário', qaTripPlan: 'Plano de viagem', qaExportTrip: 'Exportar viagem',
-    qaWebSearch: 'Pesquisa web', qaSummarizePage: 'Resumir', qaDeepen: 'Aprofundar',
-    qaMultiSynth: 'Síntese', qaExportSearch: 'Exportar pesquisa',
-    qaAnalyzePage: 'Analisar', qaCompare: 'Comparar', qaDataTable: 'Tabela',
-    qaAnalysisReport: 'Relatório', qaExportJSON: 'Exportar JSON',
-    qaExtractTable: 'Tabela→CSV', qaExtractList: 'Lista→CSV', qaExtractLinks: 'Links→CSV',
-    qaExtractJSON: 'JSON', qaExtractMD: 'Markdown',
-    qaFillForm: 'Preencher', qaCheckFields: 'Verificar', qaScreenshot: 'Captura',
-    qaExportPDF: 'PDF', qaPrepareLetter: 'Carta',
-    qaComparePrice: 'Comparar preços', qaExtractReviews: 'Avaliações', qaBestValue: 'Custo/benefício',
-    qaPriceHistory: 'Histórico', qaShoppingList: 'Lista de compras',
-    qaSummarizeNews: 'Notícias', qaWatchTopic: 'Monitorar', qaVeuilleFolder: 'Pasta',
-    qaExportVeille: 'Exportar monitoramento', qaDeepSearch: 'Pesquisa profunda',
-    qaSearchRecipe: 'Receita', qaShoppingListCuisine: 'Compras', qaConvertMeasures: 'Converter',
-    qaMealPlan: 'Plano de refeições', qaExportRecipe: 'Exportar receita',
-    qaSearchProperty: 'Buscar', qaCompareProperties: 'Comparar', qaEstimate: 'Estimar',
-    qaTrackingSheet: 'Planilha', qaPropertyReport: 'Relatório',
-    qaSearchJobs: 'Vagas', qaExtractOffers: 'Extrair', qaPrepareApp: 'Candidatura',
-    qaFillApplication: 'Candidatar', qaTrackingBoard: 'Painel de acompanhamento',
-    qaExplain: 'Explicar', qaSummarizeCourse: 'Resumo do curso', qaRevisionSheet: 'Ficha de revisão',
-    qaDeepenLearning: 'Aprofundar', qaGenerateQuiz: 'Quiz',
-  },
-};
+import { I18N_PANEL, makeT } from '../shared/i18n.js';
+import { PROVIDER_CATALOG, chatUrlFor } from '../shared/providers.js';
+import { BUILTIN_MODES, detectModeFromUrl } from '../shared/modes.js';
+import {
+  initToolRegistry, getToolsForMode, getCustomModes, getModeById,
+} from '../shared/tools.js';
+import {
+  normalizeOAI, trimHistory, buildSystemPrompt, buildAssistantMessage,
+  buildToolResult, appendToolResults, toAnthropicTools, toOpenAITools,
+  extractMemoryTags,
+} from '../shared/llm.js';
+import {
+  ICO, toolIconSvg, roleIconSvg, exportIconSvg, stepStatusIcon,
+} from '../shared/icons.js';
 
-const LANG_OPTIONS = [
-  { code: 'fr', name: 'Français' },
-  { code: 'en', name: 'English' },
-  { code: 'es', name: 'Español' },
-  { code: 'it', name: 'Italiano' },
-  { code: 'de', name: 'Deutsch' },
-  { code: 'pt', name: 'Português' },
-];
-
-function t(key) {
-  const lang = settings.uiLang || 'fr';
-  return I18N[lang]?.[key] || I18N.fr[key] || key;
-}
-
-// ─── MODEL TIER & BEST PRACTICES ──────────────────
-const BEST_PRACTICES = {
-  light: `
-BONNES PRATIQUES:
-- Avant de cliquer ou saisir, utilise get_page_content pour comprendre la structure
-- Utilise des sélecteurs CSS précis (id, [name=...], [data-testid=...]) plutôt que des sélecteurs vagues
-- Pour les formulaires, utilise fill_form plutôt que plusieurs type_text individuels
-- Pour exporter, utilise TOUJOURS generate_document avec un format explicite (csv/html/json)`,
-  full: `
-BONNES PRATIQUES:
-- Avant de cliquer ou saisir, utilise get_page_content pour comprendre la structure
-- Utilise des sélecteurs CSS précis (id, [name=...], [data-testid=...]) plutôt que des sélecteurs vagues
-- Pour les formulaires, utilise fill_form plutôt que plusieurs type_text individuels
-- Pour exporter, utilise TOUJOURS generate_document avec un format explicite (csv/html/json)
-- CSV: la première ligne doit contenir les en-têtes de colonnes séparés par des virgules, chaque ligne suivante = 1 enregistrement. Pas d'espaces autour des virgules.
-- HTML: structure minimale avec <table><thead><tr><th>... pour les tableaux
-- Si un click échoue (élément non trouvé), utilise get_page_content puis réessaie avec un sélecteur plus précis
-- Remplir un champ: utilise clear_first: true pour vider avant de saisir
-- Ne devine JAMAIS un sélecteur — vérifie d'abord avec get_page_content
-- Scrolle si l'élément pourrait être hors écran avant d'agir
-- Procède étape par étape, une seule action à la fois`,
-};
-
-function getModelTier(modelId) {
-  if (!modelId) return 'low';
-  const m = modelId.toLowerCase();
-  if (m.includes('opus') || m.includes('sonnet') || m.includes('4o') || m.includes('gpt-4-turbo') || 
-      m.includes('gemini-2.5') || m.includes('grok-3')) return 'high';
-  if (m.includes('haiku') || m.includes('4o-mini') || m.includes('mistral-large') || m.includes('command-r-plus')) return 'medium';
-  return 'low';
-}
+const t = makeT(I18N_PANEL, () => settings.uiLang || 'fr');
 
 function updateI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -613,33 +142,6 @@ function renderMarkdown(text) {
   }
 }
 
-// ─── PROVIDER DEFINITIONS ───────────────────────
-const PROVIDER_DEFS = {
-  anthropic:        { name: 'Claude-compatible', emoji: '🟣', type: 'anthropic' },
-  openai:           { name: 'GPT-compatible',    emoji: '🤖', type: 'openai'    },
-  xai:              { name: 'Grok-compatible',   emoji: '⚡', type: 'openai'    },
-  mistral:          { name: 'Mistral',           emoji: '🌊', type: 'openai'    },
-  deepseek:         { name: 'DeepSeek',          emoji: '🔍', type: 'openai'    },
-  gemini:           { name: 'Gemini',            emoji: '🔷', type: 'openai'    },
-  cohere:           { name: 'Cohere',            emoji: '🧩', type: 'openai'    },
-  openrouter:       { name: 'Router',            emoji: '🔀', type: 'openai'    },
-  zai:              { name: 'GLM',               emoji: '🌐', type: 'openai'    },
-  custom_openai:    { name: 'Custom (OAI compat)', emoji: '🔧', type: 'openai'    },
-  custom_anthropic: { name: 'Custom (ANT compat)', emoji: '🔧', type: 'anthropic' },
-};
-
-const PROVIDER_URLS = {
-  anthropic:  'https://api.anthropic.com/v1/messages',
-  openai:     'https://api.openai.com/v1/chat/completions',
-  xai:        'https://api.x.ai/v1/chat/completions',
-  mistral:    'https://api.mistral.ai/v1/chat/completions',
-  deepseek:   'https://api.deepseek.com/v1/chat/completions',
-  gemini:     'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-  cohere:     'https://api.cohere.com/v2/chat',
-  openrouter: 'https://openrouter.ai/api/v1/chat/completions',
-  zai:        'https://api.z.ai/api/paas/v4/chat/completions',
-};
-
 // ─── STATE ──────────────────────────────────────
 let settings = {
   configuredProviders:    [],
@@ -688,7 +190,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   applyTheme(settings.theme);
   renderProviderSelect();
   // Init tool registry (custom + remote tools) before rendering modes
-  if (window.ToolRegistry) await window.ToolRegistry.init();
+  await initToolRegistry();
   renderModeBar();
   renderQuickActions();
   updateI18n();
@@ -700,7 +202,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderTabBar();
     renderChat();
     if (settings.autoDetectMode) {
-      const detected = detectModeFromUrl(tab.url);
+      const detected = detectModeFromUrl(tab.url, { ...BUILTIN_MODES, ...getCustomModes() });
       if (detected && detected !== settings.currentMode) {
         settings.currentMode = detected;
         chrome.storage.local.set({ currentMode: detected });
@@ -764,13 +266,11 @@ async function loadSettings() {
   if (s.autoDetectMode !== undefined)   settings.autoDetectMode  = s.autoDetectMode;
   if (s.enabledModes && s.enabledModes.length > 0) {
     settings.enabledModes = s.enabledModes;
-  } else if (typeof window.BrowserMindModes !== 'undefined') {
-    settings.enabledModes = Object.keys(window.BrowserMindModes);
+  } else {
+    settings.enabledModes = Object.keys(BUILTIN_MODES);
   }
 
   persistentMemory = s.persistentMemory || [];
-  // Load custom modes into window for renderModeBar + callAPI
-  window._customModes = s.customModes || {};
   if (s.navAlwaysAllow !== undefined) settings.navAlwaysAllow = s.navAlwaysAllow;
   updateDebugButtonVisibility();
 }
@@ -835,9 +335,7 @@ function renderModelSelect() {
 const MODE_CHIPS_MAX = 4;
 
 function getAllModes() {
-  const native = Object.values(window.BrowserMindModes || {});
-  const custom = Object.values(window._customModes || {});
-  return [...native, ...custom];
+  return [...Object.values(BUILTIN_MODES), ...Object.values(getCustomModes())];
 }
 
 function renderModeBar() {
@@ -921,7 +419,7 @@ function selectMode(newMode) {
   chrome.storage.local.set({ currentMode: settings.currentMode });
   renderModeBar();
   renderQuickActions();
-  const mode = window.BrowserMindModes?.[newMode];
+  const mode = getModeById(newMode);
   addMsg('system', `${mode?.icon || ''} ${t(mode?.labelKey || newMode)}`);
 }
 
@@ -929,7 +427,7 @@ function renderQuickActions() {
   const qa = document.getElementById('quick-actions');
   if (!qa) return;
   
-  const mode = (window.BrowserMindModes?.[settings.currentMode]) || window.BrowserMindModes?.libre;
+  const mode = getModeById(settings.currentMode);
   if (!mode || !mode.quickActions) {
     qa.innerHTML = '';
     return;
@@ -963,6 +461,7 @@ function renderQuickActions() {
 
 // #6: reload settings from storage (called after config page saves)
 async function refreshFromStorage() {
+  await initToolRegistry();
   await loadSettings();
   applyTheme(settings.theme);
   renderProviderSelect();
@@ -1395,13 +894,13 @@ function setupEventListeners() {
       if (prevId !== msg.tabId) renderChat();
       updateApiBanner();
       if (settings.autoDetectMode && msg.url) {
-        const detected = detectModeFromUrl(msg.url);
+        const detected = detectModeFromUrl(msg.url, { ...BUILTIN_MODES, ...getCustomModes() });
         if (detected && detected !== settings.currentMode) {
           settings.currentMode = detected;
           chrome.storage.local.set({ currentMode: detected });
           renderModeBar();
           renderQuickActions();
-          const mode = window.BrowserMindModes?.[detected];
+          const mode = getModeById(detected);
           addMsg('system', `${mode?.icon || ''} ${t(mode?.labelKey || detected)} — ${t('modeAutoDetected')}`);
         }
       }
@@ -1515,7 +1014,7 @@ function updateHeaderSummary() {
   // Mode
   const modeEl = document.getElementById('summary-mode');
   if (modeEl) {
-    const mode = window.BrowserMindModes?.[settings.currentMode];
+    const mode = getModeById(settings.currentMode);
     modeEl.textContent = mode ? `${mode.icon} ${t(mode.labelKey || mode.id)}` : settings.currentMode || '—';
   }
   // Active tab title
@@ -1631,7 +1130,7 @@ async function runAgentLoop(taskTabId, startIterations = 0) {
 
     const providerInstance = (settings.configuredProviders || []).find(p => p.instanceId === settings.currentProvider);
     const typeId = providerInstance?.typeId || settings.currentProvider;
-    const isOAI = PROVIDER_DEFS[typeId]?.type === 'openai';
+    const isOAI = PROVIDER_CATALOG[typeId]?.type === 'openai';
     const blocks = isOAI ? normalizeOAI(response) : (response.content || []);
     
     // Debug: log response structure
@@ -1698,28 +1197,11 @@ async function runAgentLoop(taskTabId, startIterations = 0) {
       : (toolBlocks.length > 0 ? t('actionsInProgress') : t('noAction'));
     updateThinking(thinkingId, displayContent, true);
 
-    // ── FIX #1 : sauvegarder le message assistant avec tool_calls pour OAI ──────
-    // Pour OAI : l'assistant message DOIT contenir tool_calls si des outils sont appelés.
-    // Sans ça, les tool_call_id dans les résultats ne correspondent à rien → erreur 400.
-    // Pour Anthropic : on sauvegarde les blocks complets (text + tool_use).
-    if (isOAI) {
-      const assistantMsg = { role: 'assistant', content: textContent || null };
-      if (toolBlocks.length > 0) {
-        assistantMsg.tool_calls = toolBlocks.map(tb => ({
-          id: tb.id || ('tool_' + Date.now() + '_' + tb.name),
-          type: 'function',
-          function: { name: tb.name, arguments: JSON.stringify(tb.input) }
-        }));
-      }
-      session.history.push(assistantMsg);
-      if (textContent && settings.memoryEnabled) autoExtractMemory(textContent);
-    } else {
-      // Anthropic : toujours sauvegarder les blocks (texte + tool_use ensemble)
-      if (blocks.length > 0) {
-        session.history.push({ role: 'assistant', content: blocks });
-        if (textContent && settings.memoryEnabled) autoExtractMemory(textContent);
-      }
-    }
+    // Persist the assistant turn in the wire format the provider expects
+    // (OAI needs tool_calls on the assistant message; Anthropic needs the raw blocks).
+    const assistantMsg = buildAssistantMessage(isOAI, blocks, textContent, toolBlocks);
+    if (assistantMsg) session.history.push(assistantMsg);
+    if (textContent && settings.memoryEnabled) autoExtractMemory(textContent);
 
     if (textContent) {
       addMsgToTab(taskTabId, 'assistant', textContent);
@@ -1788,9 +1270,7 @@ async function runAgentLoop(taskTabId, startIterations = 0) {
         addMsgToTab(taskTabId, 'export', '', { format: tool.input.format, filename: result.filename });
       }
 
-      const toolResult = isOAI
-        ? { role: 'tool', tool_call_id: toolId, content: JSON.stringify(result) }
-        : { type: 'tool_result', tool_use_id: toolId, content: JSON.stringify(result) };
+      const toolResult = buildToolResult(isOAI, toolId, result);
 
       return { tool, toolResult, result };
     }
@@ -1809,23 +1289,10 @@ async function runAgentLoop(taskTabId, startIterations = 0) {
       domResults.find(r => r.tool === tb) || asyncResults.find(r => r.tool === tb)
     ).filter(Boolean);
 
-    // ── FIX #2 : tool_results dans l'historique ──────────────────────────────
-    // OAI : chaque résultat est un message { role:'tool', ... } individuel — OK
-    // Anthropic : les tool_result DOIVENT être regroupés dans UN SEUL message user
-    //   { role:'user', content: [ {type:'tool_result', ...}, ... ] }
-    //   Pousser individuellement → erreur 400 à l'itération suivante.
+    // OAI: individual {role:'tool'} messages; Anthropic: one grouped user message
+    // (pushing Anthropic tool_results individually 400s on the next iteration).
     const validResults = toolResults.filter(r => r.toolResult);
-    if (validResults.length > 0) {
-      if (isOAI) {
-        validResults.forEach(({ toolResult }) => session.history.push(toolResult));
-      } else {
-        // Anthropic : un seul message user contenant tous les tool_results
-        session.history.push({
-          role: 'user',
-          content: validResults.map(r => r.toolResult)
-        });
-      }
-    }
+    appendToolResults(session.history, isOAI, validResults.map(r => r.toolResult));
   }
 
   const maxForThisCycle = startIterations + maxIterationsPerCycle;
@@ -1849,39 +1316,29 @@ async function callAPI(pageContext, history) {
   // Lookup in configuredProviders for full info
   const providerInstance = (settings.configuredProviders || []).find(p => p.instanceId === instanceId);
   const typeId = providerInstance?.typeId || instanceId;
-  const def = PROVIDER_DEFS[typeId] || { type: 'openai' };
+  const def = PROVIDER_CATALOG[typeId] || { type: 'openai' };
   const isOAI = def?.type === 'openai';
   const apiKey = settings.providerKeys[instanceId] || providerInstance?.key;
   const model = getCurrentModel();
   const baseUrl = providerInstance?.customUrl || (typeId.startsWith('custom_')
     ? settings.providerCustomUrl[instanceId]
-    : PROVIDER_URLS[typeId]);
+    : chatUrlFor(typeId));
 
   const pName = providerInstance?.name || def?.name || typeId;
   if (!apiKey)  throw new Error(`${t('apiKeyMissing')} ${pName}`);
   if (!model)   throw new Error(t('noModelSelected'));
   if (!baseUrl) throw new Error(t('baseUrlNotConfigured'));
 
-  const memCtx = settings.memoryEnabled && persistentMemory.length > 0
-    ? '\n\nMÉMOIRE:\n' + persistentMemory.map(m => `- ${m.key}: ${m.value}`).join('\n') : '';
-
-  const langMap = { fr: 'français', en: 'English', de: 'Deutsch', es: 'Español' };
-  const lang = langMap[settings.agentLang] || 'français';
-
-  const userPrompt = settings.userSystemPrompt ? settings.userSystemPrompt + '\n\n' : '';
-  const tier = getModelTier(model);
-  const bpSetting = settings.bestPractices || 'auto';
-  let bp = '';
-  if (bpSetting === 'always' || (bpSetting === 'auto' && tier !== 'high')) {
-    bp = tier === 'low' ? BEST_PRACTICES.full : BEST_PRACTICES.light;
-  }
-  
-  const mode = (window.BrowserMindModes?.[settings.currentMode])
-            || (window._customModes?.[settings.currentMode])
-            || window.BrowserMindModes?.libre;
-  const modeExtra = mode?.systemPromptExtra ? '\n\n' + mode.systemPromptExtra : '';
-  
-  const sys = userPrompt + `Tu es BrowserMind, un agent de navigation web intelligent.${modeExtra}\n\nCONTEXTE PAGE: ${pageContext}${memCtx}\n\nDIRECTIVES:\n- Utilise les outils pour accomplir la tâche\n- Explique brièvement chaque étape\n- Si une action échoue, essaie une alternative\n- Pour exporter des données: utilise generate_document (formats: csv, html, json, md, txt)\n- Donne TOUJOURS un nom de fichier descriptif et explicite au paramètre "filename" (ex: "contacts-linkedin-2024.csv", "rapport-amazon-prix.html"), jamais "export" générique\n- Pour mémoriser: commence par [MÉMORISE: clé=valeur]\n- NAVIGATION: Évite de quitter la page courante sauf si c\'est strictement nécessaire. Préfère web_search pour les informations externes, ou new_tab pour ouvrir un autre site sans quitter la page. N\'utilise navigate (qui change la page courante) que si la tâche l\'exige explicitement.\n- Réponds TOUJOURS en ${lang}${bp}`;
+  const mode = getModeById(settings.currentMode);
+  const sys = buildSystemPrompt({
+    userSystemPrompt: settings.userSystemPrompt,
+    modeExtra: mode?.systemPromptExtra || '',
+    pageContext,
+    memory: settings.memoryEnabled ? persistentMemory : [],
+    agentLang: settings.agentLang,
+    model,
+    bestPractices: settings.bestPractices,
+  });
 
   const trimmed = trimHistory(history, settings.maxInputTokens);
   logError('REQUEST', `provider=${typeId}, model=${model}, url=${baseUrl}, messages=${trimmed.length}, mode=${settings.currentMode}`);
@@ -1892,11 +1349,11 @@ async function callAPI(pageContext, history) {
     headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
     if (typeId === 'openrouter') { headers['HTTP-Referer'] = 'https://browsermind.ext'; headers['X-Title'] = 'BrowserMind'; }
     if (typeId === 'zai') headers['Content-Type'] = 'application/json; charset=utf-8';
-    body = { model, max_tokens: 4096, messages: [{ role: 'system', content: sys }, ...trimmed], tools: oaiTools(settings.currentMode) };
+    body = { model, max_tokens: 4096, messages: [{ role: 'system', content: sys }, ...trimmed], tools: toOpenAITools(getToolsForMode(settings.currentMode)) };
     if (typeId === 'xai') body.tool_choice = 'auto';
   } else {
     headers = { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' };
-    body = { model, max_tokens: 4096, system: sys, messages: trimmed, tools: antTools(settings.currentMode) };
+    body = { model, max_tokens: 4096, system: sys, messages: trimmed, tools: toAnthropicTools(getToolsForMode(settings.currentMode)) };
   }
 
   const timeoutController = new AbortController();
@@ -1948,34 +1405,6 @@ function getCurrentModel() {
   return settings.providerSelectedModel[settings.currentProvider] || '';
 }
 
-// ─── TOOL DEFINITIONS ───────────────────────────
-function antTools(modeId) {
-  // Use registry if available (Passe B), fallback to builtin list
-  if (window.ToolRegistry) {
-    const tools = window.ToolRegistry.getForMode(modeId);
-    return tools.map(t => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
-  }
-  // Fallback: native tools only (should not happen in normal flow)
-  return window.ToolRegistry?.NATIVE_TOOLS?.map(t => ({
-    name: t.name, description: t.description, input_schema: t.input_schema
-  })) || [];
-}
-
-function oaiTools(modeId) {
-  return antTools(modeId).map(t => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.input_schema } }));
-}
-
-// ─── RESPONSE NORMALIZER ────────────────────────
-function normalizeOAI(response) {
-  const blocks = [];
-  const msg = response.choices?.[0]?.message;
-  if (!msg) { logError('NORMALIZE', 'no message'); return blocks; }
-  logError('NORMALIZE', `content=${!!msg.content}, tools=${!!msg.tool_calls}`);
-  if (msg.content) blocks.push({ type: 'text', text: msg.content });
-  if (msg.tool_calls) { for (const tc of msg.tool_calls) { let input = {}; try { input = JSON.parse(tc.function.arguments); } catch (e) {} blocks.push({ type: 'tool_use', id: tc.id, name: tc.function.name, input }); } }
-  return blocks;
-}
-
 // ─── HISTORY ────────────────────────────────────
 async function saveToHistory(tabId) {
   const session = tabSessions[tabId];
@@ -2004,25 +1433,9 @@ async function saveToHistory(tabId) {
   await chrome.storage.local.set({ [`hist_${id}`]: entry, historyIndex: index.slice(0, 200) });
 }
 
-// ─── HISTORY TRIMMER ────────────────────────────
-function trimHistory(history, maxTokens) {
-  const maxChars = maxTokens * 4;
-  let total = 0;
-  const result = [];
-  for (let i = history.length - 1; i >= 0; i--) {
-    const content = typeof history[i].content === 'string' ? history[i].content : JSON.stringify(history[i].content);
-    total += content.length;
-    if (total > maxChars && result.length > 0) break;
-    result.unshift(history[i]);
-  }
-  return result;
-}
-
 // ─── MEMORY ─────────────────────────────────────
 function autoExtractMemory(text) {
-  const re = /\[MÉMORISE:\s*([^=\]]+)=([^\]]+)\]/gi;
-  let m;
-  while ((m = re.exec(text)) !== null) saveMemory(m[1].trim(), m[2].trim());
+  for (const { key, value } of extractMemoryTags(text)) saveMemory(key, value);
 }
 
 async function saveMemory(key, value) {

@@ -365,13 +365,7 @@
         <option value="web_search_ext">web_search_ext — Recherche web</option>
         <option value="generate_document_ext">generate_document_ext — Générer un document</option>
         <option value="api_call_ext">api_call_ext — Appel API</option>
-        <option value="inject" data-i18n="toolExecutorInject">inject — Script JS injecté dans la page</option>
       </select>
-    </div>
-    <div class="field" id="tool-inject-field" style="display:none">
-      <label class="field-label" data-i18n="toolInjectLabel">Script JS (function body, reçoit <code>input</code>)</label>
-      <textarea class="input input-mono" id="tool-inject-script" rows="5" style="font-size:11px" placeholder="// input contient les paramètres de l'outil&#10;return { result: document.title };"></textarea>
-      <div class="field-hint" data-i18n="toolInjectHint">⚠️ Le script est injecté dans la page active. Utilisez avec précaution.</div>
     </div>
 
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
@@ -396,9 +390,6 @@
   </div>
 </div>
 
-<script src="src/icons.js"></script>
-<script src="src/modes.js"></script>
-<script src="src/tools-registry.js"></script>
-<script src="src/config.js"></script>
+<script type="module" src="src/configpage/main.js"></script>
 </body>
 </html>

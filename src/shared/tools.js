@@ -1,38 +1,32 @@
 // ═══════════════════════════════════════════════
-//  BrowserMind v1.0.0 — Tools Registry
-//  Gestion des outils natifs + outils custom
-// ═══════════════════════════════════════════════
+//  BrowserMind — Tools Registry (native + custom + remote)
 //
-//  FORMAT D'UN OUTIL CUSTOM (JSON) :
+//  CUSTOM TOOL FORMAT (JSON):
 //  {
-//    "name":        "mon_outil",           // identifiant snake_case unique
-//    "icon":        "🔧",                  // emoji affiché dans l'UI
-//    "label":       "Mon outil",           // nom court affiché
-//    "description": "Fait quelque chose",  // description pour le LLM
+//    "name":        "mon_outil",           // unique snake_case id
+//    "icon":        "🔧",                  // emoji shown in the UI
+//    "label":       "Mon outil",           // short display name
+//    "description": "Fait quelque chose",  // description for the LLM
 //    "category":    "custom",              // "custom" | "remote"
-//    "source":      "user",               // "user" | URL distante
-//    "input_schema": {                     // JSON Schema des paramètres
-//      "type": "object",
-//      "properties": {
-//        "param1": { "type": "string", "description": "..." }
-//      },
-//      "required": ["param1"]
-//    },
-//    "executor": "navigate_search"         // clé vers une fonction native étendue
-//                                          // OU null si géré dans background.js
+//    "source":      "user",                // "user" | remote URL
+//    "input_schema": { ... },              // JSON Schema of the parameters
+//    "executor":    "api_call_ext"         // optional: maps to a native code path
 //  }
 //
-//  EXECUTEURS DISPONIBLES (executor field) :
-//  "generate_document_ext" → alias enrichi de generate_document
-//  "api_call_ext"          → api_call avec endpoints custom
-//  "web_search_ext"        → recherche multi-moteurs
-//  null / absent           → l'outil est purement déclaratif (décrit une action
-//                            que background.js sait déjà gérer via son nom)
+//  AVAILABLE EXECUTORS (executor field):
+//  "generate_document_ext" → enriched alias of generate_document
+//  "api_call_ext"          → api_call with pre-configured endpoint
+//  "web_search_ext"        → web search with templated query
+//  null / absent           → declarative tool (no side effects)
 //
+//  Custom tools never carry executable code — they only configure
+//  native, reviewed code paths in background.js.
 // ═══════════════════════════════════════════════
 
-// ─── OUTILS NATIFS (lecture seule) ──────────────
-const NATIVE_TOOLS = [
+import { BUILTIN_MODES } from './modes.js';
+
+// ─── NATIVE TOOLS (read-only) ───────────────────
+export const NATIVE_TOOLS = [
   {
     name: 'get_page_content',
     icon: '📄', label: 'Lire la page',
@@ -133,58 +127,77 @@ const NATIVE_TOOLS = [
   }
 ];
 
-// ─── REGISTRY EN MÉMOIRE ────────────────────────
-// Merge de NATIVE_TOOLS + outils custom chargés depuis storage + distants
+// ─── IN-MEMORY REGISTRY ─────────────────────────
+// native + custom (from storage) + remote (cached)
 let _toolRegistry = [...NATIVE_TOOLS];
+let _customModes = {};
 
-// ─── API PUBLIQUE ────────────────────────────────
-
-/** Retourne tous les outils (natifs + custom) */
-function getAllRegisteredTools() {
+/** All registered tools (native + custom + remote) */
+export function getAllRegisteredTools() {
   return _toolRegistry;
 }
 
-/** Retourne un outil par son nom */
-function getToolByName(name) {
+/** Lookup by name */
+export function getToolByName(name) {
   return _toolRegistry.find(t => t.name === name) || null;
 }
 
-/** Retourne les outils pour un mode donné (filtre + custom) */
-function getToolsForMode(modeId) {
-  const builtinMode = window.BrowserMindModes?.[modeId];
-  const customModes = window._customModes || {};
-  const mode = builtinMode || customModes[modeId];
+/** Custom modes loaded from storage (kept here so panel/config share one copy) */
+export function getCustomModes() {
+  return _customModes;
+}
 
+/** Built-in + custom modes merged into one map */
+export function getAllModes() {
+  return { ...BUILTIN_MODES, ...customModesOnly() };
+}
+
+function customModesOnly() {
+  return _customModes || {};
+}
+
+/** Resolve a mode by id (builtin first, then custom), defaulting to 'libre' */
+export function getModeById(modeId) {
+  return BUILTIN_MODES[modeId] || _customModes[modeId] || BUILTIN_MODES.libre;
+}
+
+/** Tools allowed for a given mode (mode.tools filter, '*' = all) */
+export function getToolsForMode(modeId) {
+  const mode = BUILTIN_MODES[modeId] || _customModes[modeId];
   if (!mode) return _toolRegistry;
   if (mode.tools?.includes('*')) return _toolRegistry;
-
   const allowedNames = new Set(mode.tools || []);
   return _toolRegistry.filter(t => allowedNames.has(t.name));
 }
 
-/** Charge les outils custom depuis chrome.storage.local */
-async function loadCustomToolsFromStorage() {
-  return new Promise(resolve => {
-    chrome.storage.local.get(['customTools', 'customModes', 'remoteToolsUrl', 'remoteToolsCache'], data => {
-      const custom = data.customTools || [];
-      window._customModes = data.customModes || {};
+// ─── TEST SEAM ──────────────────────────────────
+/** Replace registry contents (used by unit tests) */
+export function _setRegistryForTests(tools, customModes = {}) {
+  _toolRegistry = tools;
+  _customModes = customModes;
+}
 
-      // Rebuild registry: native + custom
+// ─── STORAGE I/O ────────────────────────────────
+
+/** Load custom tools + custom modes from chrome.storage.local */
+export async function loadCustomToolsFromStorage() {
+  return new Promise(resolve => {
+    chrome.storage.local.get(['customTools', 'customModes'], data => {
+      const custom = data.customTools || [];
+      _customModes = data.customModes || {};
       _toolRegistry = [
         ...NATIVE_TOOLS,
         ...custom.map(t => ({ ...t, category: t.category || 'custom', source: t.source || 'user' }))
       ];
-
-      resolve({ custom, customModes: window._customModes });
+      resolve({ custom, customModes: _customModes });
     });
   });
 }
 
-/** Sauvegarde les outils custom dans chrome.storage.local */
-async function saveCustomTools(tools) {
+/** Persist custom tools and rebuild the registry */
+export async function saveCustomTools(tools) {
   return new Promise(resolve => {
     chrome.storage.local.set({ customTools: tools }, () => {
-      // Rebuild registry
       _toolRegistry = [
         ...NATIVE_TOOLS,
         ...tools.map(t => ({ ...t, category: t.category || 'custom', source: t.source || 'user' }))
@@ -194,45 +207,39 @@ async function saveCustomTools(tools) {
   });
 }
 
-/** Sauvegarde les modes custom dans chrome.storage.local */
-async function saveCustomModes(modes) {
+/** Persist custom modes */
+export async function saveCustomModes(modes) {
   return new Promise(resolve => {
-    window._customModes = modes;
+    _customModes = modes;
     chrome.storage.local.set({ customModes: modes }, resolve);
   });
 }
 
-/** Charge les outils depuis une URL distante (JSON) */
-async function loadRemoteTools(url) {
+/** Fetch remote tool definitions (declarative JSON) from a URL */
+export async function loadRemoteTools(url) {
   if (!url) return { tools: [], error: null };
   try {
     const res = await fetch(url, { cache: 'no-cache' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    // Accepte { tools: [...] } ou directement [...]
+    // Accepts { tools: [...] } or directly [...]
     const tools = Array.isArray(data) ? data : (data.tools || []);
 
-    // Validation minimale
     const valid = tools.filter(t =>
       t.name && typeof t.name === 'string' &&
       t.description && typeof t.description === 'string' &&
       t.input_schema
     ).map(t => ({ ...t, category: 'remote', source: url }));
 
-    // Merge dans le registry (remplace si même nom)
+    // Merge into the registry (same name replaces)
     valid.forEach(rt => {
       const idx = _toolRegistry.findIndex(t => t.name === rt.name);
-      if (idx >= 0) {
-        _toolRegistry[idx] = rt;
-      } else {
-        _toolRegistry.push(rt);
-      }
+      if (idx >= 0) _toolRegistry[idx] = rt;
+      else _toolRegistry.push(rt);
     });
 
-    // Mise en cache
     chrome.storage.local.set({ remoteToolsCache: valid, remoteToolsCachedAt: Date.now() });
-
     return { tools: valid, error: null };
   } catch (e) {
     console.warn('[BrowserMind] Remote tools load failed:', e.message);
@@ -240,45 +247,28 @@ async function loadRemoteTools(url) {
   }
 }
 
-/** Charge le cache des outils distants si dispo (sans refetch) */
-function loadRemoteToolsFromCache() {
+/** Merge the cached remote tools without refetching */
+export function loadRemoteToolsFromCache() {
   return new Promise(resolve => {
-    chrome.storage.local.get(['remoteToolsCache', 'remoteToolsCachedAt'], data => {
+    chrome.storage.local.get(['remoteToolsCache'], data => {
       const cached = data.remoteToolsCache || [];
-      if (cached.length > 0) {
-        cached.forEach(rt => {
-          const idx = _toolRegistry.findIndex(t => t.name === rt.name);
-          if (idx >= 0) _toolRegistry[idx] = rt;
-          else _toolRegistry.push(rt);
-        });
-      }
+      cached.forEach(rt => {
+        const idx = _toolRegistry.findIndex(t => t.name === rt.name);
+        if (idx >= 0) _toolRegistry[idx] = rt;
+        else _toolRegistry.push(rt);
+      });
       resolve(cached);
     });
   });
 }
 
-/** Initialisation complète au démarrage du panneau */
-async function initToolRegistry() {
+/** Full init at panel startup */
+export async function initToolRegistry() {
   await loadCustomToolsFromStorage();
   await loadRemoteToolsFromCache();
 
-  // Refresh distants en arrière-plan si une URL est configurée
+  // Refresh remote tools in the background if a URL is configured
   chrome.storage.local.get(['remoteToolsUrl'], async data => {
-    if (data.remoteToolsUrl) {
-      await loadRemoteTools(data.remoteToolsUrl);
-    }
+    if (data.remoteToolsUrl) await loadRemoteTools(data.remoteToolsUrl);
   });
 }
-
-// ─── EXPORT GLOBAL ──────────────────────────────
-window.ToolRegistry = {
-  NATIVE_TOOLS,
-  getAll:            getAllRegisteredTools,
-  getByName:         getToolByName,
-  getForMode:        getToolsForMode,
-  loadFromStorage:   loadCustomToolsFromStorage,
-  saveCustomTools,
-  saveCustomModes,
-  loadRemote:        loadRemoteTools,
-  init:              initToolRegistry,
-};

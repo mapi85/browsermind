@@ -2,6 +2,8 @@
 //  BrowserMind v1.0.0 — Background Service Worker
 // ═══════════════════════════════════════════════
 
+import { fetchProviderModels } from './shared/providers.js';
+
 // ─── KEEP-ALIVE SERVICE WORKER (MV3) ────────────
 // In Manifest V3, the Service Worker is terminated after ~30s of inactivity.
 // If an API call is in flight (e.g. 30-60s), the response could be lost.
@@ -98,73 +100,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // ─── MODEL FETCHER ──────────────────────────────
+// Provider endpoints, preset fallbacks and normalization live in shared/providers.js
 async function fetchModels(providerId, apiKey, baseUrl) {
-  const endpoints = {
-    anthropic:  null,  // hardcoded
-    mistral:    null,  // hardcoded
-    deepseek:   null,  // hardcoded
-    gemini:     null,  // hardcoded
-    cohere:     null,  // hardcoded
-    xai:        'https://api.x.ai/v1/models',
-    openai:     'https://api.openai.com/v1/models',
-    openrouter: 'https://openrouter.ai/api/v1/models',
-    zai:        'https://api.z.ai/api/paas/v4/models',
-  };
-
-  // Hardcoded fallbacks
-  const hardcoded = {
-    anthropic: [
-      { id: 'claude-opus-4-5',    name: 'Claude Opus 4.5' },
-      { id: 'claude-sonnet-4-5',  name: 'Claude Sonnet 4.5 ✦' },
-      { id: 'claude-haiku-4-5',   name: 'Claude Haiku 4.5' },
-    ],
-    mistral: [
-      { id: 'mistral-large-latest', name: 'Mistral Large (recommandé)' },
-      { id: 'mistral-small-latest', name: 'Mistral Small' },
-      { id: 'codestral-latest',     name: 'Codestral' },
-      { id: 'open-mistral-nemo',    name: 'Mistral Nemo' },
-    ],
-    deepseek: [
-      { id: 'deepseek-chat',     name: 'DeepSeek Chat (V3)' },
-      { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner (R1)' },
-    ],
-    gemini: [
-      { id: 'gemini-2.0-flash',      name: 'Gemini 2.0 Flash' },
-      { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash Lite' },
-      { id: 'gemini-1.5-pro',        name: 'Gemini 1.5 Pro' },
-    ],
-    cohere: [
-      { id: 'command-r-plus', name: 'Command R+' },
-      { id: 'command-r',      name: 'Command R' },
-    ],
-  };
-
-  if (hardcoded[providerId]) return hardcoded[providerId];
-
-  const url = providerId === 'custom_openai' ? (baseUrl?.replace('/chat/completions', '/models')) : endpoints[providerId];
-  if (!url) throw new Error('Endpoint /models inconnu pour ce provider');
-
-  const headers = { 'Authorization': `Bearer ${apiKey}` };
-  if (providerId === 'zai') headers['Content-Type'] = 'application/json; charset=utf-8';
-
-  const res = await fetch(url, { headers });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-  const data = await res.json();
-
-  // Normalize
-  let models = [];
-  if (data.data) {
-    // OpenAI/xAI/OpenRouter format
-    models = data.data
-      .map(m => ({ id: m.id, name: m.name || m.id }))
-      .filter(m => !m.id.includes('embedding') && !m.id.includes('whisper') && !m.id.includes('dall-e') && !m.id.includes('tts'))
-      .sort((a, b) => a.id.localeCompare(b.id));
-  } else if (data.models) {
-    models = data.models.map(m => ({ id: m.id || m.model, name: m.name || m.id || m.model }));
-  }
-
-  return models.length > 0 ? models : [{ id: 'unknown', name: 'Aucun modèle trouvé' }];
+  return fetchProviderModels(providerId, apiKey, baseUrl);
 }
 
 // ─── PAGE CONTEXT ────────────────────────────────
