@@ -3,16 +3,9 @@
 // ═══════════════════════════════════════════════
 
 import { I18N_PANEL, makeT } from '../shared/i18n.js';
-import { PROVIDER_CATALOG, chatUrlFor } from '../shared/providers.js';
 import { BUILTIN_MODES, detectModeFromUrl } from '../shared/modes.js';
-import {
-  initToolRegistry, getToolsForMode, getCustomModes, getModeById,
-} from '../shared/tools.js';
-import {
-  normalizeOAI, trimHistory, buildSystemPrompt, buildAssistantMessage,
-  buildToolResult, appendToolResults, toAnthropicTools, toOpenAITools,
-  extractMemoryTags,
-} from '../shared/llm.js';
+import { initToolRegistry, getCustomModes, getModeById } from '../shared/tools.js';
+import { DEFAULT_SETTINGS, loadSettingsFromStorage } from '../shared/settings.js';
 import {
   ICO, toolIconSvg, roleIconSvg, exportIconSvg, stepStatusIcon,
 } from '../shared/icons.js';
@@ -143,47 +136,20 @@ function renderMarkdown(text) {
 }
 
 // ─── STATE ──────────────────────────────────────
-let settings = {
-  configuredProviders:    [],
-  currentProvider:        '',
-  providerKeys:           {},
-  providerModels:         {},
-  providerSelectedModel:  {},
-  providerCustomUrl:      {},
-  maxIterations:         15,
-  maxInputTokens:        40000,
-  memoryEnabled:          true,
-  historyEnabled:         true,
-  uiLang:                 'fr',
-  agentLang:              'fr',
-  thinkingCollapsed:      true,
-  highlightClicks:       true,
-  debugMode:              false,
-  theme:                 'light',
-  maxTabSessions:         10,
-  userSystemPrompt:      '',
-  bestPractices:         'auto',
-  currentMode:           'libre',
-  autoDetectMode:        true,
-  enabledModes:          [],
-};
+// The agent loop lives in the background service worker; the panel keeps
+// per-tab view state and renders the AGENT_STATE broadcasts it receives.
+let settings = { ...DEFAULT_SETTINGS };
 
-// Per-tab chat sessions: { [tabId]: { messages, history, tabInfo, runningTaskId } }
+// Per-tab chat sessions: { [tabId]: { messages, url, title, running, awaitingContinue } }
 let tabSessions = {};
 let activeTabId = null;
 
-let isRunning = false;
-let stopRequested = false;
-let globalAbortController = null;
-// #8: Track which tabId the current running task belongs to
-let runningTabId = null;
-let errorLog = [];
-let persistentMemory = [];
+let errorLog = [];        // panel-side errors (bug reporter)
+let engineErrorLog = [];  // mirrored from the background engine
 
 // ─── INIT ────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   await loadSettings();
-  await loadMemory();
   initIcons();
   setupEventListeners();
   initHeaderCollapse();
@@ -199,6 +165,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (tab) {
     activeTabId = tab.id;
     ensureTabSession(tab.id, tab.url, tab.title);
+    await syncTaskState(tab.id);
     renderTabBar();
     renderChat();
     if (settings.autoDetectMode) {
@@ -215,63 +182,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadSettings() {
-  const keys = [
-    'configuredProviders', 'currentProvider',
-    'providerKeys', 'providerModels', 'providerSelectedModel', 'providerCustomUrl',
-    'maxIterations', 'maxInputTokens', 'memoryEnabled',
-    'historyEnabled', 'uiLang', 'agentLang', 'thinkingCollapsed', 'highlightClicks', 'debugMode', 'theme',
-    'maxTabSessions', 'persistentMemory', 'currentMode', 'autoDetectMode', 'enabledModes',
-    'customModes', 'navAlwaysAllow'
-  ];
-  const s = await chrome.storage.local.get(keys);
-
-  // New format: configuredProviders array
-  if (s.configuredProviders && s.configuredProviders.length > 0) {
-    settings.configuredProviders = s.configuredProviders;
-    // Rebuild legacy maps from array for callAPI compatibility
-    settings.providerKeys          = {};
-    settings.providerModels        = {};
-    settings.providerSelectedModel = {};
-    settings.providerCustomUrl     = {};
-    s.configuredProviders.forEach(p => {
-      settings.providerKeys[p.instanceId]          = p.key;
-      settings.providerModels[p.instanceId]        = p.models;
-      settings.providerSelectedModel[p.instanceId] = p.selectedModel;
-      settings.providerCustomUrl[p.instanceId]     = p.customUrl;
-    });
-  } else {
-    // Fallback: old flat format
-    if (s.providerKeys)          settings.providerKeys          = s.providerKeys;
-    if (s.providerModels)        settings.providerModels        = s.providerModels;
-    if (s.providerSelectedModel) settings.providerSelectedModel = s.providerSelectedModel;
-    if (s.providerCustomUrl)     settings.providerCustomUrl     = s.providerCustomUrl;
-    settings.configuredProviders = [];
-  }
-
-  if (s.currentProvider)               settings.currentProvider   = s.currentProvider;
-  if (s.maxIterations)                 settings.maxIterations     = s.maxIterations;
-  if (s.maxInputTokens)                settings.maxInputTokens    = s.maxInputTokens;
-  if (s.memoryEnabled  !== undefined)  settings.memoryEnabled     = s.memoryEnabled;
-  if (s.historyEnabled !== undefined)  settings.historyEnabled    = s.historyEnabled;
-  if (s.uiLang)                        settings.uiLang           = s.uiLang;
-  if (s.agentLang)                     settings.agentLang        = s.agentLang;
-  if (s.thinkingCollapsed !== undefined) settings.thinkingCollapsed = s.thinkingCollapsed;
-  if (s.highlightClicks !== undefined) settings.highlightClicks = s.highlightClicks;
-  if (s.debugMode !== undefined) settings.debugMode = s.debugMode;
-  if (s.theme)                         settings.theme             = s.theme;
-  if (s.userSystemPrompt !== undefined) settings.userSystemPrompt  = s.userSystemPrompt || '';
-  if (s.bestPractices !== undefined)      settings.bestPractices     = s.bestPractices || 'auto';
-  if (s.maxTabSessions)                settings.maxTabSessions   = s.maxTabSessions;
-  if (s.currentMode)                    settings.currentMode     = s.currentMode || 'libre';
-  if (s.autoDetectMode !== undefined)   settings.autoDetectMode  = s.autoDetectMode;
-  if (s.enabledModes && s.enabledModes.length > 0) {
-    settings.enabledModes = s.enabledModes;
-  } else {
+  settings = await loadSettingsFromStorage();
+  if (!settings.enabledModes || settings.enabledModes.length === 0) {
     settings.enabledModes = Object.keys(BUILTIN_MODES);
   }
-
-  persistentMemory = s.persistentMemory || [];
-  if (s.navAlwaysAllow !== undefined) settings.navAlwaysAllow = s.navAlwaysAllow;
   updateDebugButtonVisibility();
 }
 
@@ -280,11 +194,6 @@ function updateDebugButtonVisibility() {
   if (bugBtn) {
     bugBtn.style.display = settings.debugMode ? '' : 'none';
   }
-}
-
-async function loadMemory() {
-  const s = await chrome.storage.local.get(['persistentMemory']);
-  persistentMemory = s.persistentMemory || [];
 }
 
 // ─── THEME ──────────────────────────────────────
@@ -477,10 +386,10 @@ function ensureTabSession(tabId, url, title) {
   if (!tabSessions[tabId]) {
     tabSessions[tabId] = {
       tabId, url: url || '', title: title || 'Onglet',
-      history: [],
       messages: [],
       createdAt: Date.now(),
-      runningTaskId: null
+      running: false,
+      awaitingContinue: false,
     };
   } else {
     if (url) tabSessions[tabId].url = url;
@@ -489,17 +398,42 @@ function ensureTabSession(tabId, url, title) {
   enforceTabLimit();
 }
 
+// ─── ENGINE SYNC ────────────────────────────────
+// The background engine owns task state; these keep the view in sync.
+async function syncTaskState(tabId) {
+  try {
+    const state = await bg('GET_TASK_STATE', { tabId });
+    applyTaskState(state);
+  } catch (e) { /* SW briefly unavailable — next broadcast will catch up */ }
+}
+
+function applyTaskState(state) {
+  if (!state) return;
+  engineErrorLog = state.errorLog || engineErrorLog;
+  if (!state.exists || !tabSessions[state.tabId]) {
+    renderTabBar();
+    return;
+  }
+  const session = tabSessions[state.tabId];
+  session.messages = state.messages || [];
+  session.running = !!state.running;
+  session.awaitingContinue = !!state.awaitingContinue;
+  if (state.tabId === activeTabId) {
+    renderChat();
+    if (state.status) setStatus(state.status.text, state.status.state);
+    document.getElementById('send-btn').disabled = session.running;
+    document.getElementById('stop-btn').classList.toggle('visible', session.running);
+  }
+  renderTabBar();
+}
+
 function enforceTabLimit() {
   const limit = settings.maxTabSessions || 10;
   const sessions = Object.values(tabSessions);
   if (sessions.length <= limit) return;
 
   const sortedSessions = sessions
-    .filter(s => {
-      const isActiveTab = s.tabId === activeTabId;
-      const isRunning = s.runningTaskId != null;
-      return !isActiveTab && !isRunning;
-    })
+    .filter(s => s.tabId !== activeTabId && !s.running)
     .sort((a, b) => a.createdAt - b.createdAt);
 
   const toRemove = sessions.length - limit;
@@ -525,7 +459,7 @@ function renderTabBar() {
   bar.innerHTML = visibleSessions.map(s => {
     const domain = getDomain(s.url);
     const isActive = s.tabId === activeTabId;
-    const isLocked = s.runningTaskId != null;
+    const isLocked = s.running;
     return `
       <div class="tab-chip${isActive ? ' active' : ''}" data-tabid="${s.tabId}">
         <img class="tab-favicon" src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=16" data-fallback="none"/>
@@ -549,7 +483,7 @@ function renderTabBar() {
     dropdown.innerHTML = overflowSessions.map(s => {
       const domain = getDomain(s.url);
       const isActive = s.tabId === activeTabId;
-      const isLocked = s.runningTaskId != null;
+      const isLocked = s.running;
       return `
         <div class="tab-overflow-item${isActive ? ' active' : ''}" data-tabid="${s.tabId}">
           <img class="tab-favicon" src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=16" data-fallback="none"/>
@@ -712,6 +646,22 @@ function appendMessageElement(msg) {
     div.innerHTML = bubbleHtml;
   }
 
+  // "Continue?" offer after the engine hits the iteration limit
+  if (msg.continueOffer) {
+    const session = activeTabId ? tabSessions[activeTabId] : null;
+    if (session?.awaitingContinue) {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-primary';
+      btn.style.cssText = 'margin-top:8px;font-size:12px;padding:4px 12px;';
+      btn.textContent = t('maxIterationsBtn');
+      btn.addEventListener('click', () => {
+        btn.remove();
+        bg('CONTINUE_TASK', { tabId: activeTabId }).catch(() => {});
+      });
+      div.appendChild(btn);
+    }
+  }
+
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
   return div;
@@ -732,31 +682,6 @@ function addMsgToTab(tabId, type, content, extra = {}) {
   // Only append to DOM if this tab is active
   if (tabId === activeTabId) appendMessageElement(msg);
   return msg;
-}
-
-function addThinking(tabId) {
-  const msg = addMsgToTab(tabId, 'thinking', '', { done: false });
-  return msg?.id;
-}
-
-function updateThinking(id, content, done = false) {
-  // Update in all sessions
-  for (const session of Object.values(tabSessions)) {
-    const msg = session.messages.find(m => m.id === id);
-    if (msg) { msg.content = content; msg.done = done; }
-  }
-  // Update DOM
-  const el = document.querySelector(`[data-msg-id="${id}"] .thinking-body`);
-  if (el) el.textContent = content;
-  const summary = document.querySelector(`[data-msg-id="${id}"] .thinking-summary`);
-  if (summary && done) {
-    summary.innerHTML = `<span>${t('thinkingDone')}</span>`;
-    summary.querySelector('.thinking-dots')?.remove();
-  }
-}
-
-function removeThinking(id) {
-  updateThinking(id, '(aucun contenu)', true);
 }
 
 // ─── EVENTS ─────────────────────────────────────
@@ -810,8 +735,7 @@ function showNavConfirm(targetUrl, tabId) {
 function setupEventListeners() {
   document.getElementById('send-btn').addEventListener('click', handleSend);
   document.getElementById('stop-btn').addEventListener('click', () => {
-    stopRequested = true;
-    globalAbortController?.abort();
+    if (activeTabId) bg('STOP_TASK', { tabId: activeTabId }).catch(() => {});
     setStatus(t('statusStopping'), 'thinking');
   });
 
@@ -825,8 +749,12 @@ function setupEventListeners() {
 
   document.getElementById('clear-btn').addEventListener('click', () => {
     if (!activeTabId) return;
+    bg('CLEAR_TASK', { tabId: activeTabId }).catch(() => {});
     tabSessions[activeTabId].messages = [];
-    tabSessions[activeTabId].history = [];
+    tabSessions[activeTabId].running = false;
+    tabSessions[activeTabId].awaitingContinue = false;
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('stop-btn').classList.remove('visible');
     renderChat();
     setStatus(t('chatCleared'), 'idle');
   });
@@ -884,12 +812,22 @@ function setupEventListeners() {
   document.getElementById('bug-close-btn').addEventListener('click', () => document.getElementById('bug-panel').classList.remove('show'));
   document.getElementById('bug-copy-btn').addEventListener('click', copyBugReport);
 
-  // #5 & #6: Listen for tab changes AND storage changes from config page
+  // Engine broadcasts + tab changes + config page saves
   chrome.runtime.onMessage.addListener(msg => {
+    if (msg.type === 'AGENT_STATE') {
+      ensureTabSession(msg.tabId);
+      applyTaskState(msg);
+    }
+    if (msg.type === 'NAV_CONFIRM_REQUEST') {
+      showNavConfirm(msg.url, msg.tabId).then(allowed => {
+        bg('NAV_CONFIRM_RESPONSE', { requestId: msg.requestId, allowed }).catch(() => {});
+      });
+    }
     if (msg.type === 'TAB_CHANGED') {
       const prevId = activeTabId;
       activeTabId = msg.tabId;
       ensureTabSession(msg.tabId, msg.url, msg.title);
+      syncTaskState(msg.tabId);
       renderTabBar();
       if (prevId !== msg.tabId) renderChat();
       updateApiBanner();
@@ -1033,8 +971,10 @@ function updateHeaderSummary() {
 }
 
 // ─── SEND ───────────────────────────────────────
+// Hands the task to the background engine; rendering follows AGENT_STATE.
 async function handleSend() {
-  if (isRunning) return;
+  const session = activeTabId ? tabSessions[activeTabId] : null;
+  if (!session || session.running) return;
 
   if (!navigator.onLine) {
     addMsg('error', t('noConnexion'));
@@ -1054,395 +994,26 @@ async function handleSend() {
   if (!prompt) return;
   ta.value = ''; ta.style.height = 'auto';
 
-  // #8: Lock task to the current tab
-  const taskTabId = activeTabId;
-  runningTabId = taskTabId;
-  tabSessions[taskTabId].runningTaskId = Date.now();
-
-  addMsgToTab(taskTabId, 'user', prompt);
-  tabSessions[taskTabId].history.push({ role: 'user', content: prompt });
-
-  isRunning = true; stopRequested = false;
-  globalAbortController = new AbortController();
+  session.running = true;
   document.getElementById('send-btn').disabled = true;
   document.getElementById('stop-btn').classList.add('visible');
   renderTabBar();
 
   try {
-    await runAgentLoop(taskTabId);
-  } finally {
-    isRunning = false; stopRequested = false; runningTabId = null;
-    globalAbortController?.abort(); globalAbortController = null;
+    const resp = await bg('START_TASK', {
+      tabId: activeTabId, prompt, url: session.url, title: session.title,
+    });
+    if (resp?.error) throw new Error(resp.error);
+  } catch (e) {
+    session.running = false;
     document.getElementById('send-btn').disabled = false;
     document.getElementById('stop-btn').classList.remove('visible');
-    setStatus(t('statusReady'), 'idle');
-    renderTabBar();
-    if (settings.historyEnabled) await saveToHistory(taskTabId);
+    addMsg('error', `${t('apiError')} ${e.message}`);
   }
-}
-
-// ─── AGENT LOOP ─────────────────────────────────
-// #8: taskTabId is locked for the entire loop, regardless of user tab-switching
-async function runAgentLoop(taskTabId, startIterations = 0) {
-  const session = tabSessions[taskTabId];
-  let iterations = startIterations;
-  let emptyResponseRetries = 0;
-  const maxEmptyRetries = 2;
-  const maxIterationsPerCycle = settings.maxIterations;
-
-  while (iterations < startIterations + maxIterationsPerCycle && !stopRequested) {
-    iterations++;
-    const maxForThisCycle = startIterations + maxIterationsPerCycle;
-    setStatus(`${t('iteration')} ${iterations}/${maxForThisCycle} ${t('statusThinking')}`, 'thinking');
-
-    const pageContext = await bg('GET_PAGE_CONTEXT', { tabId: taskTabId });
-    const thinkingId = addThinking(taskTabId);
-
-    let response;
-    try {
-      response = await callAPI(pageContext.context, session.history);
-    } catch (err) {
-      // Log to internal error log (accessible via bug panel)
-      logError('API_ERROR', err.message);
-      if (err.stack) logError('API_STACK', err.stack.substring(0, 500));
-      const thinkingEl = document.querySelector(`[data-msg-id="${thinkingId}"]`);
-      if (thinkingEl) {
-        const body = thinkingEl.querySelector('.thinking-body');
-        if (body) body.textContent = `Erreur: ${err.message}`;
-        const summary = thinkingEl.querySelector('.thinking-summary');
-        if (summary) summary.innerHTML = `<span style="color:var(--error)">Erreur</span>`;
-      }
-      // Marquer la réflexion comme terminée
-      const msg = tabSessions[taskTabId]?.messages.find(m => m.id === thinkingId);
-      if (msg) { msg.done = true; msg.content = `${t('error')}: ${err.message}`; }
-      
-      if (err.isRateLimit) {
-        const w = err.retryAfter || 60;
-        addMsgToTab(taskTabId, 'error', `⏱ ${t('rateLimit')} ${w}s…`);
-        setStatus(`${t('rateLimitWait')} ${w}s`, 'thinking');
-        await sleep(w * 1000);
-        if (!stopRequested) iterations--;
-        continue;
-      }
-      addMsgToTab(taskTabId, 'error', `${t('apiError')} ${err.message}`);
-      return;
-    }
-
-    const providerInstance = (settings.configuredProviders || []).find(p => p.instanceId === settings.currentProvider);
-    const typeId = providerInstance?.typeId || settings.currentProvider;
-    const isOAI = PROVIDER_CATALOG[typeId]?.type === 'openai';
-    const blocks = isOAI ? normalizeOAI(response) : (response.content || []);
-    
-    // Debug: log response structure
-    // console.log('BrowserMind debug - response:', JSON.stringify(response).substring(0, 500));
-    // console.log('BrowserMind debug - isOAI:', isOAI, 'blocks:', blocks.length);
-    
-    const textBlocks = blocks.filter(b => b.type === 'text');
-    const toolBlocks = blocks.filter(b => b.type === 'tool_use');
-    const textContent = textBlocks.map(b => b.text).join('\n').trim();
-
-    // Log to internal errorLog (accessible via bug panel)
-    logError('RESPONSE', `textBlocks=${textBlocks.length}, toolBlocks=${toolBlocks.length}, textContent=${textContent ? textContent.substring(0,200) : 'empty'}`);
-    if (response && response.choices && response.choices[0]) {
-      logError('RESPONSE_DETAIL', `message=${JSON.stringify(response.choices[0].message).substring(0,300)}`);
-    }
-
-    // Handle empty response - retry with hint
-    if (textBlocks.length === 0 && toolBlocks.length === 0) {
-      logError('EMPTY_RESPONSE', `Retry ${emptyResponseRetries + 1}/${maxEmptyRetries}`);
-      const msg = response.choices?.[0]?.message;
-      const refusal = msg?.refusal || msg?.provider_specific_fields?.refusal;
-      const reasoning = msg?.reasoning || msg?.provider_specific_fields?.reasoning;
-      
-      if (refusal) {
-        addMsgToTab(taskTabId, 'error', `${t('refusal')} ${refusal}`);
-        logError('REFUSAL', refusal);
-        setStatus(t('statusRefusal'), 'idle');
-        return;
-      }
-      
-      if (reasoning) {
-        logError('REASONING', reasoning.substring(0, 200));
-        addMsgToTab(taskTabId, 'thinking', `Raison: ${reasoning.substring(0, 200)}`);
-      }
-      
-      emptyResponseRetries++;
-      
-      if (emptyResponseRetries >= maxEmptyRetries) {
-        addMsgToTab(taskTabId, 'error', t('emptyResponse'));
-        setStatus(t('statusFailEmpty'), 'idle');
-        return;
-      }
-      
-      // Add a hint to encourage the model to use tools
-      const hintMsg = {
-        fr: 'Continue. Utilise les outils disponibles pour accomplir la tâche.',
-        en: 'Continue. Use the available tools to complete the task.',
-        es: 'Continúa. Usa las herramientas disponibles para completar la tarea.',
-        it: 'Continua. Usa gli strumenti disponibili per completare il compito.',
-        de: 'Fortfahren. Verwenden Sie die verfügbaren Tools, um die Aufgabe zu erledigen.',
-        pt: 'Continue. Use as ferramentas disponíveis para completar a tarefa.'
-      };
-      session.history.push({ role: 'user', content: hintMsg[settings.uiLang] || hintMsg.fr });
-      setStatus(t('statusRetry'), 'thinking');
-      continue;
-    }
-
-    // Reset retry counter on successful response
-    emptyResponseRetries = 0;
-
-    // Afficher la réflexion seulement si elle contient quelque chose de significatif
-    const displayContent = textContent 
-      ? textContent 
-      : (toolBlocks.length > 0 ? t('actionsInProgress') : t('noAction'));
-    updateThinking(thinkingId, displayContent, true);
-
-    // Persist the assistant turn in the wire format the provider expects
-    // (OAI needs tool_calls on the assistant message; Anthropic needs the raw blocks).
-    const assistantMsg = buildAssistantMessage(isOAI, blocks, textContent, toolBlocks);
-    if (assistantMsg) session.history.push(assistantMsg);
-    if (textContent && settings.memoryEnabled) autoExtractMemory(textContent);
-
-    if (textContent) {
-      addMsgToTab(taskTabId, 'assistant', textContent);
-    }
-
-    if (toolBlocks.length === 0) { setStatus(t('statusDone'), 'idle'); return; }
-
-    setStatus(`⚡ ${toolBlocks.length} ${t('statusActions')}`, 'active');
-    addMsgToTab(taskTabId, 'action', '', { actions: toolBlocks.map(tb => ({ tool: tb.name, input: tb.input, status: t('stepStatus').pending })) });
-
-    // Exécuter les outils séquentiellement pour les outils DOM (plus sûr),
-    // en parallèle uniquement pour les outils non-DOM (navigate, download, wait)
-    const DOM_TOOLS = new Set(['click', 'type_text', 'scroll', 'fill_form', 'extract_data', 'get_page_content']);
-    const domTools   = toolBlocks.filter(tb => DOM_TOOLS.has(tb.name));
-    const asyncTools = toolBlocks.filter(tb => !DOM_TOOLS.has(tb.name));
-
-    async function execTool(tool) {
-      if (stopRequested) return { tool, toolResult: null, result: { error: 'Stopped' } };
-
-      // ── Navigation guard ──────────────────────────────────────────
-      // If the tool wants to navigate away and user hasn't set "always allow",
-      // show a confirmation dialog (unless navAllowed is set in storage)
-      if (tool.name === 'navigate' && tool.input?.url) {
-        const stored = await new Promise(r => chrome.storage.local.get(['navAlwaysAllow'], r));
-        if (!stored.navAlwaysAllow) {
-          const currentUrl = tabSessions[taskTabId]?.url || '';
-          const targetUrl  = tool.input.url;
-          // Only ask if navigating to a different domain
-          const currentDomain = currentUrl ? new URL(currentUrl).hostname : '';
-          let targetDomain = '';
-          try { targetDomain = new URL(targetUrl.startsWith('http') ? targetUrl : 'https://'+targetUrl).hostname; } catch(e) {}
-          if (targetDomain && currentDomain && targetDomain !== currentDomain) {
-            const confirmed = await showNavConfirm(targetUrl, taskTabId);
-            if (!confirmed) {
-              return { tool, toolResult: null, result: { error: 'Navigation annulée par l\'utilisateur.', cancelled: true } };
-            }
-          }
-        }
-      }
-      // ─────────────────────────────────────────────────────────────
-
-      // Garantir un id stable pour faire correspondre tool_call_id ↔ tool_result
-      const toolId = tool.id || ('tool_' + Date.now() + '_' + tool.name);
-      tool.id = toolId; // réinjecter pour que l'historique soit cohérent
-      setStatus(`⚡ ${t('toolLabel')[tool.name]}…`, 'active');
-
-      let result;
-      let retries = 2;
-      while (retries > 0) {
-        try {
-          result = await bg('EXECUTE_TOOL', { tool: tool.name, input: tool.input, tabId: taskTabId });
-          result = result.result || result;
-          break;
-        } catch (e) {
-          retries--;
-          if (retries === 0) {
-            result = { error: e.message };
-            logError('TOOL_ERROR', e.message, { tool: tool.name });
-          } else {
-            await sleep(500);
-          }
-        }
-      }
-
-      if (tool.name === 'generate_document' && result.success) {
-        addMsgToTab(taskTabId, 'export', '', { format: tool.input.format, filename: result.filename });
-      }
-
-      const toolResult = buildToolResult(isOAI, toolId, result);
-
-      return { tool, toolResult, result };
-    }
-
-    // DOM tools : séquentiels (évite les collisions d'interactions page)
-    const domResults = [];
-    for (const tool of domTools) {
-      if (stopRequested) break;
-      domResults.push(await execTool(tool));
-    }
-    // Outils non-DOM : parallèles (navigate, download, wait, screenshot…)
-    const asyncResults = stopRequested ? [] : await Promise.all(asyncTools.map(execTool));
-
-    // Reconstituer l'ordre original pour l'historique
-    const toolResults = toolBlocks.map(tb =>
-      domResults.find(r => r.tool === tb) || asyncResults.find(r => r.tool === tb)
-    ).filter(Boolean);
-
-    // OAI: individual {role:'tool'} messages; Anthropic: one grouped user message
-    // (pushing Anthropic tool_results individually 400s on the next iteration).
-    const validResults = toolResults.filter(r => r.toolResult);
-    appendToolResults(session.history, isOAI, validResults.map(r => r.toolResult));
-  }
-
-  const maxForThisCycle = startIterations + maxIterationsPerCycle;
-  if (iterations >= maxForThisCycle) {
-    const msg = addMsgToTab(taskTabId, 'system', `⚠ ${t('maxIterations')} ${maxForThisCycle} ${t('iterationsReached')} ${t('maxIterationsContinue')}`);
-    const msgEl = document.querySelector(`[data-msg-id="${msg.id}"]`);
-    if (msgEl) {
-      const btn = document.createElement('button');
-      btn.className = 'btn btn-primary';
-      btn.style.cssText = 'margin-top:8px;font-size:12px;padding:4px 12px;';
-      btn.textContent = t('maxIterationsBtn');
-      btn.onclick = () => { btn.remove(); runAgentLoop(taskTabId, iterations); };
-      msgEl.appendChild(btn);
-    }
-  }
-}
-
-// ─── API CALL ────────────────────────────────────
-async function callAPI(pageContext, history) {
-  const instanceId = settings.currentProvider;
-  // Lookup in configuredProviders for full info
-  const providerInstance = (settings.configuredProviders || []).find(p => p.instanceId === instanceId);
-  const typeId = providerInstance?.typeId || instanceId;
-  const def = PROVIDER_CATALOG[typeId] || { type: 'openai' };
-  const isOAI = def?.type === 'openai';
-  const apiKey = settings.providerKeys[instanceId] || providerInstance?.key;
-  const model = getCurrentModel();
-  const baseUrl = providerInstance?.customUrl || (typeId.startsWith('custom_')
-    ? settings.providerCustomUrl[instanceId]
-    : chatUrlFor(typeId));
-
-  const pName = providerInstance?.name || def?.name || typeId;
-  if (!apiKey)  throw new Error(`${t('apiKeyMissing')} ${pName}`);
-  if (!model)   throw new Error(t('noModelSelected'));
-  if (!baseUrl) throw new Error(t('baseUrlNotConfigured'));
-
-  const mode = getModeById(settings.currentMode);
-  const sys = buildSystemPrompt({
-    userSystemPrompt: settings.userSystemPrompt,
-    modeExtra: mode?.systemPromptExtra || '',
-    pageContext,
-    memory: settings.memoryEnabled ? persistentMemory : [],
-    agentLang: settings.agentLang,
-    model,
-    bestPractices: settings.bestPractices,
-  });
-
-  const trimmed = trimHistory(history, settings.maxInputTokens);
-  logError('REQUEST', `provider=${typeId}, model=${model}, url=${baseUrl}, messages=${trimmed.length}, mode=${settings.currentMode}`);
-
-  let headers, body;
-
-  if (isOAI) {
-    headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
-    if (typeId === 'openrouter') { headers['HTTP-Referer'] = 'https://browsermind.ext'; headers['X-Title'] = 'BrowserMind'; }
-    if (typeId === 'zai') headers['Content-Type'] = 'application/json; charset=utf-8';
-    body = { model, max_tokens: 4096, messages: [{ role: 'system', content: sys }, ...trimmed], tools: toOpenAITools(getToolsForMode(settings.currentMode)) };
-    if (typeId === 'xai') body.tool_choice = 'auto';
-  } else {
-    headers = { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' };
-    body = { model, max_tokens: 4096, system: sys, messages: trimmed, tools: toAnthropicTools(getToolsForMode(settings.currentMode)) };
-  }
-
-  const timeoutController = new AbortController();
-  const timeoutId = setTimeout(() => timeoutController.abort(), 120000);
-  let signal;
-  if (globalAbortController && typeof AbortSignal.any === 'function') {
-    signal = AbortSignal.any([globalAbortController.signal, timeoutController.signal]);
-  } else if (globalAbortController) {
-    const onAbort = () => timeoutController.abort();
-    globalAbortController.signal.addEventListener('abort', onAbort, { once: true });
-    signal = timeoutController.signal;
-  } else {
-    signal = timeoutController.signal;
-  }
-
-  let res;
-  try {
-    res = await fetch(baseUrl, { method: 'POST', headers, body: JSON.stringify(body), signal });
-  } catch (e) {
-    clearTimeout(timeoutId);
-    if (e.name === 'AbortError') {
-      if (stopRequested) throw new Error('Arrêté par l\'utilisateur');
-      throw new Error('Délai d\'attente dépassé (120s) - Pas de réponse du serveur');
-    }
-    throw e;
-  }
-  clearTimeout(timeoutId);
-
-  if (res.status === 429) {
-    const retry = parseInt(res.headers.get('retry-after') || '60');
-    const e = new Error('Rate limit'); e.isRateLimit = true; e.retryAfter = retry; throw e;
-  }
-  if (!res.ok) {
-    const errText = await res.text();
-    logError('HTTP_ERROR', `status=${res.status}, body=${errText.substring(0, 300)}`);
-    let err = {};
-    try { err = JSON.parse(errText); } catch (_) {}
-    if (err.error?.type === 'rate_limit_error') {
-      const e = new Error(err.error.message); e.isRateLimit = true; e.retryAfter = 60; throw e;
-    }
-    throw new Error(err.error?.message || `HTTP ${res.status}: ${errText.substring(0, 100)}`);
-  }
-  const responseData = await res.json();
-  logError('API_RESPONSE', `status=${res.status}, keys=${Object.keys(responseData).join(',')}`);
-  return responseData;
 }
 
 function getCurrentModel() {
   return settings.providerSelectedModel[settings.currentProvider] || '';
-}
-
-// ─── HISTORY ────────────────────────────────────
-async function saveToHistory(tabId) {
-  const session = tabSessions[tabId];
-  if (!session || session.messages.length === 0) return;
-  const userMessages = session.messages.filter(m => m.type === 'user');
-  if (userMessages.length === 0) return;
-
-  const id = `${tabId}_${session.createdAt}`;
-  const entry = {
-    id, tabId, url: session.url,
-    title: session.title || getDomain(session.url),
-    provider: settings.currentProvider,
-    model: getCurrentModel(),
-    firstMessage: userMessages[0]?.content?.substring(0, 100) || '',
-    summary: userMessages.map(m => m.content).join(' ').substring(0, 200),
-    messageCount: session.messages.length,
-    messages: session.messages,
-    apiHistory: session.history,
-    createdAt: session.createdAt,
-    updatedAt: Date.now(),
-  };
-
-  const { historyIndex } = await chrome.storage.local.get('historyIndex');
-  const index = (historyIndex || []).filter(i => i !== id);
-  index.unshift(id);
-  await chrome.storage.local.set({ [`hist_${id}`]: entry, historyIndex: index.slice(0, 200) });
-}
-
-// ─── MEMORY ─────────────────────────────────────
-function autoExtractMemory(text) {
-  for (const { key, value } of extractMemoryTags(text)) saveMemory(key, value);
-}
-
-async function saveMemory(key, value) {
-  const idx = persistentMemory.findIndex(m => m.key.toLowerCase() === key.toLowerCase());
-  const entry = { key, value, timestamp: Date.now() };
-  if (idx >= 0) persistentMemory[idx] = entry; else persistentMemory.push(entry);
-  await chrome.storage.local.set({ persistentMemory });
 }
 
 // ─── BUG REPORTER ────────────────────────────────
@@ -1460,6 +1031,7 @@ function openBugPanel() {
 
 function buildBugLog() {
   const session = activeTabId ? tabSessions[activeTabId] : null;
+  const allErrors = [...engineErrorLog, ...errorLog].sort((a, b) => (a.ts < b.ts ? -1 : 1));
   return [
     `BrowserMind v1.0.0 — Bug Report`,
     `Date: ${new Date().toISOString()}`,
@@ -1468,8 +1040,8 @@ function buildBugLog() {
     `Tab: ${session?.url || '—'}`,
     `Messages: ${session?.messages.length || 0}`,
     ``,
-    `Errors (${errorLog.length}):`,
-    ...errorLog.slice(-20).map(e => `[${e.ts}] ${e.type}: ${e.msg}${Object.keys(e.ctx).length ? ' | ' + JSON.stringify(e.ctx) : ''}`),
+    `Errors (${allErrors.length}):`,
+    ...allErrors.slice(-20).map(e => `[${e.ts}] ${e.type}: ${e.msg}${Object.keys(e.ctx || {}).length ? ' | ' + JSON.stringify(e.ctx) : ''}`),
   ].join('\n');
 }
 

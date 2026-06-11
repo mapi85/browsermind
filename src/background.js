@@ -3,6 +3,10 @@
 // ═══════════════════════════════════════════════
 
 import { fetchProviderModels } from './shared/providers.js';
+import {
+  initEngine, startTask, continueTask, stopTask, clearTask,
+  getTaskState, respondNavConfirm,
+} from './background/engine.js';
 
 // ─── KEEP-ALIVE SERVICE WORKER (MV3) ────────────
 // In Manifest V3, the Service Worker is terminated after ~30s of inactivity.
@@ -97,6 +101,37 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch(err => sendResponse({ error: err.message }));
     return true;
   }
+  // ─── Agent engine (the loop runs here, the panel just renders) ───
+  if (message.type === 'START_TASK') {
+    startTask(message).then(sendResponse).catch(err => sendResponse({ error: err.message }));
+    return true;
+  }
+  if (message.type === 'CONTINUE_TASK') {
+    sendResponse(continueTask(message.tabId));
+    return false;
+  }
+  if (message.type === 'STOP_TASK') {
+    sendResponse(stopTask(message.tabId));
+    return false;
+  }
+  if (message.type === 'CLEAR_TASK') {
+    sendResponse(clearTask(message.tabId));
+    return false;
+  }
+  if (message.type === 'GET_TASK_STATE') {
+    sendResponse(getTaskState(message.tabId));
+    return false;
+  }
+  if (message.type === 'NAV_CONFIRM_RESPONSE') {
+    sendResponse(respondNavConfirm(message.requestId, message.allowed));
+    return false;
+  }
+});
+
+// Wire the engine to this worker's tool executor and page-context reader
+initEngine({
+  executeTool: async (tool, input, tabId) => executeTool(tool, input, tabId),
+  getPageContext: (tabId) => getPageContext(tabId),
 });
 
 // ─── MODEL FETCHER ──────────────────────────────
