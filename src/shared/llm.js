@@ -11,10 +11,10 @@
 export function getModelTier(modelId) {
   if (!modelId) return 'low';
   const m = modelId.toLowerCase();
+  if (m.includes('haiku') || m.includes('4o-mini') || m.includes('mistral-large') || m.includes('command-r-plus')) return 'medium';
   if (m.includes('opus') || m.includes('sonnet') || m.includes('fable') ||
       m.includes('4o') || m.includes('gpt-4-turbo') ||
       m.includes('gemini-2.5') || m.includes('grok-3')) return 'high';
-  if (m.includes('haiku') || m.includes('4o-mini') || m.includes('mistral-large') || m.includes('command-r-plus')) return 'medium';
   return 'low';
 }
 
