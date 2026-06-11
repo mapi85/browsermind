@@ -194,6 +194,9 @@ async function executeTool(toolName, input, tabId) {
   const tab = await chrome.tabs.get(targetTabId);
 
   if (INTERACTIVE_TOOLS.includes(toolName)) {
+    // Visual feedback (click highlight) is injected on demand instead of
+    // running a static content script on every page the user visits.
+    await ensureContentScript(targetTabId);
     await randomDelayBetweenActions();
   }
 
@@ -251,6 +254,16 @@ const INTERACTIVE_TOOLS = ['click', 'type_text', 'scroll', 'fill_form', 'navigat
 async function randomDelayBetweenActions() {
   const delay = 200 + Math.random() * 600;
   await new Promise(r => setTimeout(r, delay));
+}
+
+// Injects the highlight/toast helper into the tab the agent is acting on.
+// content.js guards against double-injection via window.__bm_loaded.
+async function ensureContentScript(tabId) {
+  try {
+    await chrome.scripting.executeScript({ target: { tabId }, files: ['src/content.js'] });
+  } catch (e) {
+    // Restricted page (chrome://, store, …) — the tool itself will report the real error
+  }
 }
 
 // ═══════════════════════════════════════════════

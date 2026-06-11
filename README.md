@@ -88,35 +88,51 @@ BrowserMind works with major AI providers including OpenAI, Anthropic, Google, a
 
 ```
 browsermind/
-├── manifest.json          # Chrome extension manifest (MV3)
-├── sidepanel.html         # Side panel UI entry point
-├── config.html            # Settings page
+├── manifest.json            # Chrome extension manifest (MV3)
+├── sidepanel.html           # Side panel UI entry point
+├── config.html              # Settings page
 ├── src/
-│   ├── sidepanel.js       # Side panel logic, agent loop, i18n
-│   ├── background.js      # Service worker, tool executor
-│   ├── modes.js           # Built-in mode definitions
-│   ├── tools-registry.js  # Custom + remote tools system
-│   ├── config.js          # Settings page logic
-│   ├── icons.js           # SVG icon set
-│   ├── sidepanel.css      # Side panel styles
-│   ├── config.css         # Settings page styles
-│   ├── shared.css         # Shared design tokens
-│   ├── content.js         # Content script (page interaction)
-│   └── lib/
-│       └── marked.min.js  # Markdown renderer
-└── icons/                 # Extension icons
+│   ├── background.js        # Service worker: tool executor + message hub
+│   ├── background/
+│   │   └── engine.js        # Agent loop (runs in the SW — tasks survive panel close)
+│   ├── panel/
+│   │   └── main.js          # Side panel view (renders engine state)
+│   ├── configpage/
+│   │   └── main.js          # Settings page logic
+│   ├── shared/              # Single-source modules (ESM, no build step)
+│   │   ├── i18n.js          # All UI strings (6 languages)
+│   │   ├── providers.js     # Provider catalog: endpoints, preset models
+│   │   ├── llm.js           # Pure wire-format + prompt logic (unit-tested)
+│   │   ├── modes.js         # Built-in mode definitions
+│   │   ├── tools.js         # Native/custom/remote tool registry
+│   │   ├── settings.js      # Storage schema + loader
+│   │   └── icons.js         # SVG icon set
+│   ├── content.js           # Highlight/toast helper (injected on demand)
+│   ├── sidepanel.css        # Side panel styles
+│   ├── config.css           # Settings page styles
+│   ├── shared.css           # Shared design tokens
+│   └── lib/marked.min.js    # Markdown renderer
+├── tests/                   # Vitest suite for src/shared
+└── icons/                   # Extension icons
 ```
 
 ---
 
 ## 🛠️ Development
 
-No build step needed — this is vanilla JS/HTML/CSS.
+No build step needed — this is vanilla JS/HTML/CSS (native ES modules).
 
 ```bash
 git clone https://github.com/mapi85/browsermind.git
 cd browsermind
 # Load unpacked in chrome://extensions
+```
+
+Run the unit tests (shared core logic):
+
+```bash
+npm install
+npm test
 ```
 
 To contribute:
