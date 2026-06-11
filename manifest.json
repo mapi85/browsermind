@@ -3,7 +3,7 @@
   "name": "BrowserMind — AI Navigator",
   "version": "1.0.0",
   "description": "Pilotez votre navigateur avec un assistant IA via un panneau latéral. Modes contextuels pour Voyage, Recherche, Analyse, etc.",
-  "homepage_url": "https://github.com/your-username/browsermind",
+  "homepage_url": "https://github.com/mapi85/browsermind",
   "permissions": [
     "alarms",
     "sidePanel",

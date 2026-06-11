@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-7c6cff.svg)](LICENSE)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-4fd1c5.svg)](manifest.json)
-[![Version](https://img.shields.io/badge/Version-6.1-f6ad55.svg)](manifest.json)
+[![Version](https://img.shields.io/badge/Version-1.0.0-f6ad55.svg)](manifest.json)
 
 ---
 
@@ -52,18 +52,29 @@ Or load unpacked in developer mode:
 You can create your own tools and share them via a remote JSON registry.  
 Full documentation: **[tools.mapi85.fr/browsermind](https://tools.mapi85.fr/browsermind)**
 
-Minimal tool format:
+Minimal tool format (declarative — custom tools configure built-in executors, they never inject remote code):
 ```json
 {
-  "name": "extract_emails",
-  "icon": "📧",
-  "label": "Extract emails",
-  "description": "Extracts all email addresses visible on the current page.",
-  "input_schema": { "type": "object", "properties": {}, "required": [] },
-  "executor": "inject",
-  "injectScript": "const m=[...document.body.innerText.matchAll(/[\\w.-]+@[\\w.-]+\\.[a-z]{2,}/gi)].map(m=>m[0]); return {emails:[...new Set(m)]};"
+  "name": "weather_lookup",
+  "icon": "🌤️",
+  "label": "Weather lookup",
+  "description": "Gets the current weather for given coordinates.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "latitude": { "type": "number" },
+      "longitude": { "type": "number" }
+    },
+    "required": ["latitude", "longitude"]
+  },
+  "executor": "api_call_ext",
+  "api": "open_meteo",
+  "endpoint": "/forecast",
+  "defaultParams": { "current_weather": true }
 }
 ```
+
+Available executors: `generate_document_ext`, `api_call_ext`, `web_search_ext` — all map to native, reviewed code paths.
 
 ---
 
@@ -103,7 +114,7 @@ browsermind/
 No build step needed — this is vanilla JS/HTML/CSS.
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/browsermind.git
+git clone https://github.com/mapi85/browsermind.git
 cd browsermind
 # Load unpacked in chrome://extensions
 ```

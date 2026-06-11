@@ -1919,10 +1919,6 @@ function deleteCustomMode(modeId) {
   });
 }
 
-function tConfig(key) {
-  return I18N_CONFIG[state.uiLang]?.[key] || I18N_CONFIG['fr']?.[key] || key;
-}
-
 // ═══════════════════════════════════════════════
 //  ONGLET OUTILS — Passe B
 // ═══════════════════════════════════════════════
