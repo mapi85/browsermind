@@ -1,0 +1,500 @@
+{
+  "appName": {
+    "message": "BrowserMind — AI browser assistant"
+  },
+  "appDescription": {
+    "message": "Ask in plain language and let an AI assistant read, fill in and act on the page you are viewing."
+  },
+  "emptyTitle": {
+    "message": "What would you like to do?"
+  },
+  "emptyBody": {
+    "message": "Describe it in your own words. The assistant reads the page you are on and works from there."
+  },
+  "composerPlaceholder": {
+    "message": "Ask anything about this page…"
+  },
+  "send": {
+    "message": "Send"
+  },
+  "stop": {
+    "message": "Stop"
+  },
+  "sendHint": {
+    "message": "Enter to send · Shift+Enter for a new line"
+  },
+  "newChat": {
+    "message": "New conversation"
+  },
+  "settings": {
+    "message": "Settings"
+  },
+  "copy": {
+    "message": "Copy"
+  },
+  "copied": {
+    "message": "Copied"
+  },
+  "configure": {
+    "message": "Set up"
+  },
+  "roleYou": {
+    "message": "You"
+  },
+  "roleAgent": {
+    "message": "Assistant"
+  },
+  "thinkingLabel": {
+    "message": "Thinking…"
+  },
+  "thinkingDone": {
+    "message": "Reasoning"
+  },
+  "actionsTitle": {
+    "message": "Actions"
+  },
+  "continueBtn": {
+    "message": "Keep going"
+  },
+  "fileReady": {
+    "message": "File ready"
+  },
+  "statusReady": {
+    "message": "Ready"
+  },
+  "statusThinking": {
+    "message": "Thinking · step {i} of {max}"
+  },
+  "statusActing": {
+    "message": "Working on the page…"
+  },
+  "statusStopping": {
+    "message": "Stopping…"
+  },
+  "statusStopped": {
+    "message": "Stopped"
+  },
+  "statusDone": {
+    "message": "Done"
+  },
+  "statusPaused": {
+    "message": "Paused"
+  },
+  "statusRateLimitWait": {
+    "message": "Rate limited — retrying in {seconds}s"
+  },
+  "statusAwaitingConfirm": {
+    "message": "Waiting for your confirmation"
+  },
+  "statusWaitingModel": {
+    "message": "Waiting for the model…"
+  },
+  "statusLoadingModel": {
+    "message": "Loading the model — the first request after a restart is slow"
+  },
+  "backgroundTask": {
+    "message": "Task running on {domain}"
+  },
+  "navTitle": {
+    "message": "Leave this page?"
+  },
+  "navBody": {
+    "message": "The assistant wants to open {domain} in this tab."
+  },
+  "navAlways": {
+    "message": "Always allow"
+  },
+  "navAllow": {
+    "message": "Open"
+  },
+  "navCancel": {
+    "message": "Stay here"
+  },
+  "noticeMaxIterations": {
+    "message": "Reached {max} steps without finishing."
+  },
+  "noticePageChanged": {
+    "message": "You navigated to {domain}."
+  },
+  "noticeStoppedPageChanged": {
+    "message": "Stopped: the page changed while the assistant was working. Ask again to continue on the new page."
+  },
+  "noticeStoppedByUser": {
+    "message": "Stopped."
+  },
+  "noticeResumed": {
+    "message": "Picked this conversation back up from a tab you closed."
+  },
+  "noticeProviderChanged": {
+    "message": "Switched to {provider}. This service speaks a different protocol, so the conversation starts fresh."
+  },
+  "noticeRateLimited": {
+    "message": "Provider rate limit reached — waiting {seconds}s."
+  },
+  "errNoProvider": {
+    "message": "No AI service set up yet."
+  },
+  "errNoKey": {
+    "message": "{provider} has no API key."
+  },
+  "errNoModel": {
+    "message": "No model selected for {provider}."
+  },
+  "errNoEndpoint": {
+    "message": "This service has no address configured."
+  },
+  "errBadKey": {
+    "message": "The API key was refused. Check it in settings."
+  },
+  "errNoCredit": {
+    "message": "The account has no credit left with this provider."
+  },
+  "errBadEndpoint": {
+    "message": "The service address returned nothing. Check the URL in settings."
+  },
+  "errBadRequest": {
+    "message": "The provider rejected the request: {detail}"
+  },
+  "errProviderDown": {
+    "message": "The provider is unavailable right now. Try again in a moment."
+  },
+  "errTimeout": {
+    "message": "The model sent nothing for {seconds}s. If it runs on your machine, it may still be loading — try again."
+  },
+  "errApi": {
+    "message": "Something went wrong: {detail}"
+  },
+  "errEmptyResponse": {
+    "message": "The model returned nothing twice in a row. Try rewording your request."
+  },
+  "errRefusal": {
+    "message": "The model declined: {detail}"
+  },
+  "errorDetails": {
+    "message": "Technical details"
+  },
+  "errOffline": {
+    "message": "No internet connection."
+  },
+  "errContextTooLong": {
+    "message": "This conversation no longer fits in the model’s context, even trimmed. Start a new conversation, or use a model with a larger window."
+  },
+  "noticeContextTrimmed": {
+    "message": "The conversation was too long for this model — older steps were dropped and the step retried."
+  },
+  "errUnknownProvider": {
+    "message": "Unknown service type: {type}"
+  },
+  "toolReadPage": {
+    "message": "Reading the page"
+  },
+  "toolClick": {
+    "message": "Clicking"
+  },
+  "toolTypeText": {
+    "message": "Typing"
+  },
+  "toolFillForm": {
+    "message": "Filling the form"
+  },
+  "toolScroll": {
+    "message": "Scrolling"
+  },
+  "toolNavigate": {
+    "message": "Navigating"
+  },
+  "toolNewTab": {
+    "message": "Opening a tab"
+  },
+  "toolExtractData": {
+    "message": "Extracting data"
+  },
+  "toolWait": {
+    "message": "Waiting"
+  },
+  "toolScreenshot": {
+    "message": "Looking at the page"
+  },
+  "toolGenerateDocument": {
+    "message": "Creating a file"
+  },
+  "toolDownloadFile": {
+    "message": "Downloading"
+  },
+  "toolWebSearch": {
+    "message": "Searching the web"
+  },
+  "toolApiCall": {
+    "message": "Looking up data"
+  },
+  "settingsTitle": {
+    "message": "BrowserMind settings"
+  },
+  "tabModel": {
+    "message": "AI service"
+  },
+  "tabGeneral": {
+    "message": "General"
+  },
+  "save": {
+    "message": "Save"
+  },
+  "saveDone": {
+    "message": "Saved"
+  },
+  "saveUnsaved": {
+    "message": "Unsaved changes"
+  },
+  "cancel": {
+    "message": "Cancel"
+  },
+  "remove": {
+    "message": "Remove"
+  },
+  "next": {
+    "message": "Next"
+  },
+  "back": {
+    "message": "Back"
+  },
+  "providerListTitle": {
+    "message": "Connected services"
+  },
+  "providerNone": {
+    "message": "No AI service yet. Add one to start using BrowserMind."
+  },
+  "providerAdd": {
+    "message": "Add a service"
+  },
+  "providerActive": {
+    "message": "In use"
+  },
+  "providerUse": {
+    "message": "Use this one"
+  },
+  "providerRemoveConfirm": {
+    "message": "Remove this service and its API key?"
+  },
+  "providerChangeModel": {
+    "message": "Model"
+  },
+  "providerEdit": {
+    "message": "Edit"
+  },
+  "providerKeySet": {
+    "message": "Saved — type to replace it"
+  },
+  "providerCheck": {
+    "message": "Check the model"
+  },
+  "providerChecking": {
+    "message": "Asking the model…"
+  },
+  "providerCheckOk": {
+    "message": "The model answered in {seconds}s"
+  },
+  "providerThinking": {
+    "message": "Extended thinking"
+  },
+  "providerThinkingHint": {
+    "message": "Slower and more expensive, better on tricky pages. Override per message with /think or /nothink."
+  },
+  "providerThinkingPromptHint": {
+    "message": "This server has no setting for it, so /think is added to your message — a convention several local models follow."
+  },
+  "providerVision": {
+    "message": "Let the assistant look at the page"
+  },
+  "providerVisionHint": {
+    "message": "Only for models that read images. Turn it off and the screenshot tool is not offered. Override per message with /vision or /novision."
+  },
+  "providerRecheck": {
+    "message": "Check again"
+  },
+  "wizardTitle": {
+    "message": "Add an AI service"
+  },
+  "wizardStepService": {
+    "message": "Choose a service"
+  },
+  "wizardStepKey": {
+    "message": "Enter your key"
+  },
+  "wizardStepModel": {
+    "message": "Pick a model"
+  },
+  "wizardOthers": {
+    "message": "Other services"
+  },
+  "wizardNeedKey": {
+    "message": "BrowserMind uses your own account with the AI service. Get a key, paste it here, and it stays on this computer."
+  },
+  "wizardGetKey": {
+    "message": "Get a key"
+  },
+  "wizardKeyLabel": {
+    "message": "API key"
+  },
+  "wizardUrlLabel": {
+    "message": "Server address"
+  },
+  "wizardUrlHint": {
+    "message": "The address up to /v1 — for example http://localhost:11434/v1 for Ollama."
+  },
+  "wizardNameLabel": {
+    "message": "Name"
+  },
+  "wizardChecking": {
+    "message": "Checking…"
+  },
+  "wizardConnected": {
+    "message": "Connected — {count} models available"
+  },
+  "wizardModelHint": {
+    "message": "You can change this later at any time."
+  },
+  "wizardShowAll": {
+    "message": "Show every model"
+  },
+  "wizardFinish": {
+    "message": "Finish"
+  },
+  "tierFast": {
+    "message": "Fast and cheap"
+  },
+  "tierBalanced": {
+    "message": "Recommended"
+  },
+  "tierCapable": {
+    "message": "Most capable"
+  },
+  "testMissingKey": {
+    "message": "Enter your API key first."
+  },
+  "testBadKey": {
+    "message": "This key was refused by the service."
+  },
+  "testNoCredit": {
+    "message": "The key works but the account has no credit."
+  },
+  "testBadUrl": {
+    "message": "Nothing answered at that address."
+  },
+  "testRateLimited": {
+    "message": "Too many requests right now — try again shortly."
+  },
+  "testProviderDown": {
+    "message": "The service is having trouble. Try again later."
+  },
+  "testNetwork": {
+    "message": "Could not reach the service. Check your connection or the address."
+  },
+  "testNoModel": {
+    "message": "Pick a model to test with."
+  },
+  "secLanguage": {
+    "message": "Language"
+  },
+  "optUiLang": {
+    "message": "Interface"
+  },
+  "optAgentLang": {
+    "message": "Assistant replies in"
+  },
+  "optAuto": {
+    "message": "Same as browser"
+  },
+  "optSameAsUi": {
+    "message": "Same as interface"
+  },
+  "secAppearance": {
+    "message": "Appearance"
+  },
+  "optTheme": {
+    "message": "Theme"
+  },
+  "themeSystem": {
+    "message": "Follow system"
+  },
+  "themeLight": {
+    "message": "Light"
+  },
+  "themeDark": {
+    "message": "Dark"
+  },
+  "optHighlight": {
+    "message": "Show what the assistant touches"
+  },
+  "optHighlightHint": {
+    "message": "Outlines each element on the page as the assistant acts on it."
+  },
+  "secBehaviour": {
+    "message": "Behaviour"
+  },
+  "optInstructions": {
+    "message": "Custom instructions"
+  },
+  "optInstructionsHint": {
+    "message": "Anything you want the assistant to always keep in mind."
+  },
+  "optInstructionsPlaceholder": {
+    "message": "e.g. Always answer in metric units. Prefer official sources."
+  },
+  "optMaxSteps": {
+    "message": "Steps before asking to continue"
+  },
+  "optMaxStepsHint": {
+    "message": "A safety limit on long tasks. The assistant pauses and asks before going further."
+  },
+  "optNavAlways": {
+    "message": "Allow the assistant to change site without asking"
+  },
+  "secMemory": {
+    "message": "Memory"
+  },
+  "optMemory": {
+    "message": "Let the assistant remember things about you"
+  },
+  "memoryEmpty": {
+    "message": "Nothing remembered yet."
+  },
+  "memoryForget": {
+    "message": "Forget"
+  },
+  "memoryForgetAll": {
+    "message": "Forget everything"
+  },
+  "secHistory": {
+    "message": "Conversation history"
+  },
+  "optHistory": {
+    "message": "Keep past conversations"
+  },
+  "optRetention": {
+    "message": "Conversations to keep"
+  },
+  "historyEmpty": {
+    "message": "No conversation saved yet."
+  },
+  "historySearch": {
+    "message": "Search…"
+  },
+  "historyClear": {
+    "message": "Delete all"
+  },
+  "historyClearConfirm": {
+    "message": "Delete every saved conversation?"
+  },
+  "secAdvanced": {
+    "message": "Advanced"
+  },
+  "optDebug": {
+    "message": "Show technical details"
+  },
+  "optDebugHint": {
+    "message": "Adds a diagnostics panel useful when reporting a problem."
+  },
+  "privacyNote": {
+    "message": "Your API key and your conversations stay on this computer. Page content is sent only to the AI service you configured."
+  }
+}

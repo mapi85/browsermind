@@ -1,0 +1,500 @@
+{
+  "appName": {
+    "message": "BrowserMind — KI-Assistent für den Browser"
+  },
+  "appDescription": {
+    "message": "Sagen Sie in normaler Sprache, was zu tun ist — ein KI-Assistent liest die Seite, füllt aus und handelt für Sie."
+  },
+  "emptyTitle": {
+    "message": "Was möchten Sie tun?"
+  },
+  "emptyBody": {
+    "message": "Beschreiben Sie es in eigenen Worten. Der Assistent liest die Seite, auf der Sie sind, und geht von dort aus weiter."
+  },
+  "composerPlaceholder": {
+    "message": "Fragen Sie alles zu dieser Seite…"
+  },
+  "send": {
+    "message": "Senden"
+  },
+  "stop": {
+    "message": "Stopp"
+  },
+  "sendHint": {
+    "message": "Eingabe zum Senden · Umschalt+Eingabe für neue Zeile"
+  },
+  "newChat": {
+    "message": "Neue Unterhaltung"
+  },
+  "settings": {
+    "message": "Einstellungen"
+  },
+  "copy": {
+    "message": "Kopieren"
+  },
+  "copied": {
+    "message": "Kopiert"
+  },
+  "configure": {
+    "message": "Einrichten"
+  },
+  "roleYou": {
+    "message": "Sie"
+  },
+  "roleAgent": {
+    "message": "Assistent"
+  },
+  "thinkingLabel": {
+    "message": "Denkt nach…"
+  },
+  "thinkingDone": {
+    "message": "Überlegung"
+  },
+  "actionsTitle": {
+    "message": "Aktionen"
+  },
+  "continueBtn": {
+    "message": "Weitermachen"
+  },
+  "fileReady": {
+    "message": "Datei bereit"
+  },
+  "statusReady": {
+    "message": "Bereit"
+  },
+  "statusThinking": {
+    "message": "Denkt nach · Schritt {i} von {max}"
+  },
+  "statusActing": {
+    "message": "Arbeitet auf der Seite…"
+  },
+  "statusStopping": {
+    "message": "Wird gestoppt…"
+  },
+  "statusStopped": {
+    "message": "Gestoppt"
+  },
+  "statusDone": {
+    "message": "Fertig"
+  },
+  "statusPaused": {
+    "message": "Pausiert"
+  },
+  "statusRateLimitWait": {
+    "message": "Limit erreicht — neuer Versuch in {seconds} s"
+  },
+  "statusAwaitingConfirm": {
+    "message": "Wartet auf Ihre Bestätigung"
+  },
+  "statusWaitingModel": {
+    "message": "Warten auf das Modell…"
+  },
+  "statusLoadingModel": {
+    "message": "Modell wird geladen — die erste Anfrage nach einem Neustart dauert"
+  },
+  "backgroundTask": {
+    "message": "Aufgabe läuft auf {domain}"
+  },
+  "navTitle": {
+    "message": "Diese Seite verlassen?"
+  },
+  "navBody": {
+    "message": "Der Assistent möchte {domain} in diesem Tab öffnen."
+  },
+  "navAlways": {
+    "message": "Immer erlauben"
+  },
+  "navAllow": {
+    "message": "Öffnen"
+  },
+  "navCancel": {
+    "message": "Hier bleiben"
+  },
+  "noticeMaxIterations": {
+    "message": "{max} Schritte erreicht, ohne fertig zu werden."
+  },
+  "noticePageChanged": {
+    "message": "Sie sind zu {domain} navigiert."
+  },
+  "noticeStoppedPageChanged": {
+    "message": "Gestoppt: Die Seite hat sich geändert, während der Assistent arbeitete. Fragen Sie erneut, um auf der neuen Seite fortzufahren."
+  },
+  "noticeStoppedByUser": {
+    "message": "Gestoppt."
+  },
+  "noticeResumed": {
+    "message": "Diese Unterhaltung wurde aus einem geschlossenen Tab fortgesetzt."
+  },
+  "noticeProviderChanged": {
+    "message": "Zu {provider} gewechselt. Dieser Dienst spricht ein anderes Protokoll — die Unterhaltung beginnt neu."
+  },
+  "noticeRateLimited": {
+    "message": "Limit des Anbieters erreicht — warte {seconds} s."
+  },
+  "errNoProvider": {
+    "message": "Noch kein KI-Dienst eingerichtet."
+  },
+  "errNoKey": {
+    "message": "Für {provider} fehlt der API-Schlüssel."
+  },
+  "errNoModel": {
+    "message": "Für {provider} ist kein Modell ausgewählt."
+  },
+  "errNoEndpoint": {
+    "message": "Für diesen Dienst ist keine Adresse konfiguriert."
+  },
+  "errBadKey": {
+    "message": "Der API-Schlüssel wurde abgelehnt. Prüfen Sie ihn in den Einstellungen."
+  },
+  "errNoCredit": {
+    "message": "Das Konto hat bei diesem Anbieter kein Guthaben mehr."
+  },
+  "errBadEndpoint": {
+    "message": "Die Dienstadresse hat nichts zurückgegeben. Prüfen Sie die URL in den Einstellungen."
+  },
+  "errBadRequest": {
+    "message": "Der Anbieter hat die Anfrage abgelehnt: {detail}"
+  },
+  "errProviderDown": {
+    "message": "Der Anbieter ist gerade nicht erreichbar. Versuchen Sie es gleich noch einmal."
+  },
+  "errTimeout": {
+    "message": "Das Modell hat {seconds} s lang nichts gesendet. Läuft es lokal, wird es womöglich noch geladen — versuchen Sie es erneut."
+  },
+  "errApi": {
+    "message": "Etwas ist schiefgelaufen: {detail}"
+  },
+  "errEmptyResponse": {
+    "message": "Das Modell hat zweimal nichts geliefert. Formulieren Sie die Anfrage anders."
+  },
+  "errRefusal": {
+    "message": "Das Modell hat abgelehnt: {detail}"
+  },
+  "errorDetails": {
+    "message": "Technische Details"
+  },
+  "errOffline": {
+    "message": "Keine Internetverbindung."
+  },
+  "errContextTooLong": {
+    "message": "Diese Unterhaltung passt selbst gekürzt nicht mehr in das Kontextfenster des Modells. Beginnen Sie neu oder nutzen Sie ein Modell mit größerem Fenster."
+  },
+  "noticeContextTrimmed": {
+    "message": "Die Unterhaltung war für dieses Modell zu lang — ältere Schritte wurden verworfen und der Schritt wiederholt."
+  },
+  "errUnknownProvider": {
+    "message": "Unbekannter Diensttyp: {type}"
+  },
+  "toolReadPage": {
+    "message": "Seite lesen"
+  },
+  "toolClick": {
+    "message": "Klicken"
+  },
+  "toolTypeText": {
+    "message": "Tippen"
+  },
+  "toolFillForm": {
+    "message": "Formular ausfüllen"
+  },
+  "toolScroll": {
+    "message": "Scrollen"
+  },
+  "toolNavigate": {
+    "message": "Navigieren"
+  },
+  "toolNewTab": {
+    "message": "Tab öffnen"
+  },
+  "toolExtractData": {
+    "message": "Daten extrahieren"
+  },
+  "toolWait": {
+    "message": "Warten"
+  },
+  "toolScreenshot": {
+    "message": "Seite ansehen"
+  },
+  "toolGenerateDocument": {
+    "message": "Datei erstellen"
+  },
+  "toolDownloadFile": {
+    "message": "Herunterladen"
+  },
+  "toolWebSearch": {
+    "message": "Web durchsuchen"
+  },
+  "toolApiCall": {
+    "message": "Daten abrufen"
+  },
+  "settingsTitle": {
+    "message": "BrowserMind-Einstellungen"
+  },
+  "tabModel": {
+    "message": "KI-Dienst"
+  },
+  "tabGeneral": {
+    "message": "Allgemein"
+  },
+  "save": {
+    "message": "Speichern"
+  },
+  "saveDone": {
+    "message": "Gespeichert"
+  },
+  "saveUnsaved": {
+    "message": "Nicht gespeicherte Änderungen"
+  },
+  "cancel": {
+    "message": "Abbrechen"
+  },
+  "remove": {
+    "message": "Entfernen"
+  },
+  "next": {
+    "message": "Weiter"
+  },
+  "back": {
+    "message": "Zurück"
+  },
+  "providerListTitle": {
+    "message": "Verbundene Dienste"
+  },
+  "providerNone": {
+    "message": "Noch kein KI-Dienst. Fügen Sie einen hinzu, um BrowserMind zu nutzen."
+  },
+  "providerAdd": {
+    "message": "Dienst hinzufügen"
+  },
+  "providerActive": {
+    "message": "Aktiv"
+  },
+  "providerUse": {
+    "message": "Diesen verwenden"
+  },
+  "providerRemoveConfirm": {
+    "message": "Diesen Dienst und seinen API-Schlüssel entfernen?"
+  },
+  "providerChangeModel": {
+    "message": "Modell"
+  },
+  "providerEdit": {
+    "message": "Bearbeiten"
+  },
+  "providerKeySet": {
+    "message": "Gespeichert — zum Ersetzen neu eingeben"
+  },
+  "providerCheck": {
+    "message": "Modell testen"
+  },
+  "providerChecking": {
+    "message": "Modell wird angefragt…"
+  },
+  "providerCheckOk": {
+    "message": "Das Modell hat in {seconds} s geantwortet"
+  },
+  "providerThinking": {
+    "message": "Erweitertes Nachdenken"
+  },
+  "providerThinkingHint": {
+    "message": "Langsamer und teurer, besser bei kniffligen Seiten. Pro Nachricht mit /think oder /nothink erzwingen."
+  },
+  "providerThinkingPromptHint": {
+    "message": "Dieser Server hat dafür keine Einstellung: /think wird an Ihre Nachricht angehängt — eine Konvention vieler lokaler Modelle."
+  },
+  "providerVision": {
+    "message": "Dem Assistenten erlauben, die Seite anzusehen"
+  },
+  "providerVisionHint": {
+    "message": "Nur für Modelle, die Bilder lesen. Ausgeschaltet wird das Screenshot-Werkzeug nicht angeboten. Pro Nachricht mit /vision oder /novision erzwingen."
+  },
+  "providerRecheck": {
+    "message": "Erneut prüfen"
+  },
+  "wizardTitle": {
+    "message": "KI-Dienst hinzufügen"
+  },
+  "wizardStepService": {
+    "message": "Dienst wählen"
+  },
+  "wizardStepKey": {
+    "message": "Schlüssel eingeben"
+  },
+  "wizardStepModel": {
+    "message": "Modell wählen"
+  },
+  "wizardOthers": {
+    "message": "Weitere Dienste"
+  },
+  "wizardNeedKey": {
+    "message": "BrowserMind nutzt Ihr eigenes Konto beim KI-Dienst. Holen Sie sich einen Schlüssel, fügen Sie ihn hier ein — er bleibt auf diesem Computer."
+  },
+  "wizardGetKey": {
+    "message": "Schlüssel holen"
+  },
+  "wizardKeyLabel": {
+    "message": "API-Schlüssel"
+  },
+  "wizardUrlLabel": {
+    "message": "Serveradresse"
+  },
+  "wizardUrlHint": {
+    "message": "Die Adresse bis /v1 — zum Beispiel http://localhost:11434/v1 für Ollama."
+  },
+  "wizardNameLabel": {
+    "message": "Name"
+  },
+  "wizardChecking": {
+    "message": "Wird geprüft…"
+  },
+  "wizardConnected": {
+    "message": "Verbunden — {count} Modelle verfügbar"
+  },
+  "wizardModelHint": {
+    "message": "Sie können das jederzeit ändern."
+  },
+  "wizardShowAll": {
+    "message": "Alle Modelle anzeigen"
+  },
+  "wizardFinish": {
+    "message": "Fertig"
+  },
+  "tierFast": {
+    "message": "Schnell und günstig"
+  },
+  "tierBalanced": {
+    "message": "Empfohlen"
+  },
+  "tierCapable": {
+    "message": "Am leistungsfähigsten"
+  },
+  "testMissingKey": {
+    "message": "Geben Sie zuerst Ihren API-Schlüssel ein."
+  },
+  "testBadKey": {
+    "message": "Der Dienst hat diesen Schlüssel abgelehnt."
+  },
+  "testNoCredit": {
+    "message": "Der Schlüssel funktioniert, das Konto hat aber kein Guthaben."
+  },
+  "testBadUrl": {
+    "message": "Unter dieser Adresse antwortet nichts."
+  },
+  "testRateLimited": {
+    "message": "Momentan zu viele Anfragen — versuchen Sie es gleich erneut."
+  },
+  "testProviderDown": {
+    "message": "Der Dienst hat Probleme. Versuchen Sie es später."
+  },
+  "testNetwork": {
+    "message": "Der Dienst war nicht erreichbar. Prüfen Sie Verbindung oder Adresse."
+  },
+  "testNoModel": {
+    "message": "Wählen Sie ein Modell für den Test."
+  },
+  "secLanguage": {
+    "message": "Sprache"
+  },
+  "optUiLang": {
+    "message": "Oberfläche"
+  },
+  "optAgentLang": {
+    "message": "Assistent antwortet auf"
+  },
+  "optAuto": {
+    "message": "Wie der Browser"
+  },
+  "optSameAsUi": {
+    "message": "Wie die Oberfläche"
+  },
+  "secAppearance": {
+    "message": "Darstellung"
+  },
+  "optTheme": {
+    "message": "Design"
+  },
+  "themeSystem": {
+    "message": "Wie das System"
+  },
+  "themeLight": {
+    "message": "Hell"
+  },
+  "themeDark": {
+    "message": "Dunkel"
+  },
+  "optHighlight": {
+    "message": "Zeigen, was der Assistent anfasst"
+  },
+  "optHighlightHint": {
+    "message": "Hebt jedes Element hervor, während der Assistent darauf zugreift."
+  },
+  "secBehaviour": {
+    "message": "Verhalten"
+  },
+  "optInstructions": {
+    "message": "Eigene Anweisungen"
+  },
+  "optInstructionsHint": {
+    "message": "Was der Assistent immer berücksichtigen soll."
+  },
+  "optInstructionsPlaceholder": {
+    "message": "z. B. Antworte immer in metrischen Einheiten. Bevorzuge offizielle Quellen."
+  },
+  "optMaxSteps": {
+    "message": "Schritte, bevor nachgefragt wird"
+  },
+  "optMaxStepsHint": {
+    "message": "Eine Sicherheitsgrenze für lange Aufgaben. Der Assistent hält an und fragt nach."
+  },
+  "optNavAlways": {
+    "message": "Dem Assistenten erlauben, ohne Nachfrage die Website zu wechseln"
+  },
+  "secMemory": {
+    "message": "Gedächtnis"
+  },
+  "optMemory": {
+    "message": "Dem Assistenten erlauben, sich Dinge über Sie zu merken"
+  },
+  "memoryEmpty": {
+    "message": "Noch nichts gemerkt."
+  },
+  "memoryForget": {
+    "message": "Vergessen"
+  },
+  "memoryForgetAll": {
+    "message": "Alles vergessen"
+  },
+  "secHistory": {
+    "message": "Gesprächsverlauf"
+  },
+  "optHistory": {
+    "message": "Frühere Unterhaltungen aufbewahren"
+  },
+  "optRetention": {
+    "message": "Aufzubewahrende Unterhaltungen"
+  },
+  "historyEmpty": {
+    "message": "Noch keine Unterhaltung gespeichert."
+  },
+  "historySearch": {
+    "message": "Suchen…"
+  },
+  "historyClear": {
+    "message": "Alle löschen"
+  },
+  "historyClearConfirm": {
+    "message": "Alle gespeicherten Unterhaltungen löschen?"
+  },
+  "secAdvanced": {
+    "message": "Erweitert"
+  },
+  "optDebug": {
+    "message": "Technische Details anzeigen"
+  },
+  "optDebugHint": {
+    "message": "Fügt ein Diagnose-Panel hinzu, das beim Melden von Problemen hilft."
+  },
+  "privacyNote": {
+    "message": "Ihr API-Schlüssel und Ihre Unterhaltungen bleiben auf diesem Computer. Seiteninhalte gehen nur an den von Ihnen konfigurierten KI-Dienst."
+  }
+}

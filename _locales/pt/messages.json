@@ -1,0 +1,500 @@
+{
+  "appName": {
+    "message": "BrowserMind — assistente de IA para o navegador"
+  },
+  "appDescription": {
+    "message": "Peça em linguagem natural: um assistente de IA lê, preenche e age sobre a página que está a ver."
+  },
+  "emptyTitle": {
+    "message": "O que deseja fazer?"
+  },
+  "emptyBody": {
+    "message": "Descreva-o por palavras suas. O assistente lê a página onde está e parte daí."
+  },
+  "composerPlaceholder": {
+    "message": "Pergunte o que quiser sobre esta página…"
+  },
+  "send": {
+    "message": "Enviar"
+  },
+  "stop": {
+    "message": "Parar"
+  },
+  "sendHint": {
+    "message": "Enter para enviar · Shift+Enter para nova linha"
+  },
+  "newChat": {
+    "message": "Nova conversa"
+  },
+  "settings": {
+    "message": "Definições"
+  },
+  "copy": {
+    "message": "Copiar"
+  },
+  "copied": {
+    "message": "Copiado"
+  },
+  "configure": {
+    "message": "Configurar"
+  },
+  "roleYou": {
+    "message": "Você"
+  },
+  "roleAgent": {
+    "message": "Assistente"
+  },
+  "thinkingLabel": {
+    "message": "A pensar…"
+  },
+  "thinkingDone": {
+    "message": "Raciocínio"
+  },
+  "actionsTitle": {
+    "message": "Ações"
+  },
+  "continueBtn": {
+    "message": "Continuar"
+  },
+  "fileReady": {
+    "message": "Ficheiro pronto"
+  },
+  "statusReady": {
+    "message": "Pronto"
+  },
+  "statusThinking": {
+    "message": "A pensar · passo {i} de {max}"
+  },
+  "statusActing": {
+    "message": "A agir na página…"
+  },
+  "statusStopping": {
+    "message": "A parar…"
+  },
+  "statusStopped": {
+    "message": "Parado"
+  },
+  "statusDone": {
+    "message": "Concluído"
+  },
+  "statusPaused": {
+    "message": "Em pausa"
+  },
+  "statusRateLimitWait": {
+    "message": "Limite atingido — nova tentativa em {seconds} s"
+  },
+  "statusAwaitingConfirm": {
+    "message": "A aguardar a sua confirmação"
+  },
+  "statusWaitingModel": {
+    "message": "A aguardar o modelo…"
+  },
+  "statusLoadingModel": {
+    "message": "A carregar o modelo — o primeiro pedido após reiniciar é lento"
+  },
+  "backgroundTask": {
+    "message": "Tarefa em curso em {domain}"
+  },
+  "navTitle": {
+    "message": "Sair desta página?"
+  },
+  "navBody": {
+    "message": "O assistente quer abrir {domain} neste separador."
+  },
+  "navAlways": {
+    "message": "Permitir sempre"
+  },
+  "navAllow": {
+    "message": "Abrir"
+  },
+  "navCancel": {
+    "message": "Ficar aqui"
+  },
+  "noticeMaxIterations": {
+    "message": "Atingidos {max} passos sem terminar."
+  },
+  "noticePageChanged": {
+    "message": "Navegou para {domain}."
+  },
+  "noticeStoppedPageChanged": {
+    "message": "Parado: a página mudou enquanto o assistente trabalhava. Peça de novo para continuar na nova página."
+  },
+  "noticeStoppedByUser": {
+    "message": "Parado."
+  },
+  "noticeResumed": {
+    "message": "Conversa retomada de um separador que fechou."
+  },
+  "noticeProviderChanged": {
+    "message": "Mudou para {provider}. Este serviço usa outro protocolo: a conversa recomeça do zero."
+  },
+  "noticeRateLimited": {
+    "message": "Limite do fornecedor atingido — a aguardar {seconds} s."
+  },
+  "errNoProvider": {
+    "message": "Ainda não há nenhum serviço de IA configurado."
+  },
+  "errNoKey": {
+    "message": "{provider} não tem chave de API."
+  },
+  "errNoModel": {
+    "message": "Nenhum modelo selecionado para {provider}."
+  },
+  "errNoEndpoint": {
+    "message": "Este serviço não tem endereço configurado."
+  },
+  "errBadKey": {
+    "message": "A chave de API foi recusada. Verifique-a nas definições."
+  },
+  "errNoCredit": {
+    "message": "A conta já não tem crédito neste fornecedor."
+  },
+  "errBadEndpoint": {
+    "message": "O endereço do serviço não devolveu nada. Verifique o URL nas definições."
+  },
+  "errBadRequest": {
+    "message": "O fornecedor rejeitou o pedido: {detail}"
+  },
+  "errProviderDown": {
+    "message": "O fornecedor está indisponível. Tente novamente daqui a pouco."
+  },
+  "errTimeout": {
+    "message": "O modelo não enviou nada durante {seconds} s. Se corre na sua máquina, pode ainda estar a carregar — tente de novo."
+  },
+  "errApi": {
+    "message": "Algo correu mal: {detail}"
+  },
+  "errEmptyResponse": {
+    "message": "O modelo não devolveu nada duas vezes seguidas. Tente reformular."
+  },
+  "errRefusal": {
+    "message": "O modelo recusou: {detail}"
+  },
+  "errorDetails": {
+    "message": "Detalhes técnicos"
+  },
+  "errOffline": {
+    "message": "Sem ligação à internet."
+  },
+  "errContextTooLong": {
+    "message": "Esta conversa já não cabe no contexto do modelo, mesmo reduzida. Inicie uma nova conversa ou use um modelo com janela maior."
+  },
+  "noticeContextTrimmed": {
+    "message": "A conversa excedia a capacidade do modelo — os passos antigos foram descartados e o passo repetido."
+  },
+  "errUnknownProvider": {
+    "message": "Tipo de serviço desconhecido: {type}"
+  },
+  "toolReadPage": {
+    "message": "A ler a página"
+  },
+  "toolClick": {
+    "message": "Clique"
+  },
+  "toolTypeText": {
+    "message": "A escrever"
+  },
+  "toolFillForm": {
+    "message": "A preencher o formulário"
+  },
+  "toolScroll": {
+    "message": "A deslocar"
+  },
+  "toolNavigate": {
+    "message": "A navegar"
+  },
+  "toolNewTab": {
+    "message": "A abrir um separador"
+  },
+  "toolExtractData": {
+    "message": "A extrair dados"
+  },
+  "toolWait": {
+    "message": "A aguardar"
+  },
+  "toolScreenshot": {
+    "message": "A observar a página"
+  },
+  "toolGenerateDocument": {
+    "message": "A criar um ficheiro"
+  },
+  "toolDownloadFile": {
+    "message": "A transferir"
+  },
+  "toolWebSearch": {
+    "message": "A pesquisar na web"
+  },
+  "toolApiCall": {
+    "message": "A consultar dados"
+  },
+  "settingsTitle": {
+    "message": "Definições do BrowserMind"
+  },
+  "tabModel": {
+    "message": "Serviço de IA"
+  },
+  "tabGeneral": {
+    "message": "Geral"
+  },
+  "save": {
+    "message": "Guardar"
+  },
+  "saveDone": {
+    "message": "Guardado"
+  },
+  "saveUnsaved": {
+    "message": "Alterações não guardadas"
+  },
+  "cancel": {
+    "message": "Cancelar"
+  },
+  "remove": {
+    "message": "Remover"
+  },
+  "next": {
+    "message": "Seguinte"
+  },
+  "back": {
+    "message": "Voltar"
+  },
+  "providerListTitle": {
+    "message": "Serviços ligados"
+  },
+  "providerNone": {
+    "message": "Ainda não há serviço de IA. Adicione um para começar a usar o BrowserMind."
+  },
+  "providerAdd": {
+    "message": "Adicionar um serviço"
+  },
+  "providerActive": {
+    "message": "Em uso"
+  },
+  "providerUse": {
+    "message": "Usar este"
+  },
+  "providerRemoveConfirm": {
+    "message": "Remover este serviço e a respetiva chave de API?"
+  },
+  "providerChangeModel": {
+    "message": "Modelo"
+  },
+  "providerEdit": {
+    "message": "Editar"
+  },
+  "providerKeySet": {
+    "message": "Guardada — escreva outra para a substituir"
+  },
+  "providerCheck": {
+    "message": "Testar o modelo"
+  },
+  "providerChecking": {
+    "message": "A consultar o modelo…"
+  },
+  "providerCheckOk": {
+    "message": "O modelo respondeu em {seconds} s"
+  },
+  "providerThinking": {
+    "message": "Raciocínio alargado"
+  },
+  "providerThinkingHint": {
+    "message": "Mais lento e mais caro, melhor em páginas difíceis. Force por mensagem com /think ou /nothink."
+  },
+  "providerThinkingPromptHint": {
+    "message": "Este servidor não tem definição para isso: /think é acrescentado à sua mensagem, uma convenção seguida por vários modelos locais."
+  },
+  "providerVision": {
+    "message": "Permitir que o assistente veja a página"
+  },
+  "providerVisionHint": {
+    "message": "Apenas para modelos que leem imagens. Desativado, a ferramenta de captura não é oferecida. Force por mensagem com /vision ou /novision."
+  },
+  "providerRecheck": {
+    "message": "Verificar de novo"
+  },
+  "wizardTitle": {
+    "message": "Adicionar um serviço de IA"
+  },
+  "wizardStepService": {
+    "message": "Escolher um serviço"
+  },
+  "wizardStepKey": {
+    "message": "Introduzir a sua chave"
+  },
+  "wizardStepModel": {
+    "message": "Escolher um modelo"
+  },
+  "wizardOthers": {
+    "message": "Outros serviços"
+  },
+  "wizardNeedKey": {
+    "message": "O BrowserMind usa a sua própria conta no serviço de IA. Obtenha uma chave, cole-a aqui: fica neste computador."
+  },
+  "wizardGetKey": {
+    "message": "Obter uma chave"
+  },
+  "wizardKeyLabel": {
+    "message": "Chave de API"
+  },
+  "wizardUrlLabel": {
+    "message": "Endereço do servidor"
+  },
+  "wizardUrlHint": {
+    "message": "O endereço até /v1 — por exemplo http://localhost:11434/v1 para o Ollama."
+  },
+  "wizardNameLabel": {
+    "message": "Nome"
+  },
+  "wizardChecking": {
+    "message": "A verificar…"
+  },
+  "wizardConnected": {
+    "message": "Ligado — {count} modelos disponíveis"
+  },
+  "wizardModelHint": {
+    "message": "Pode alterar isto a qualquer momento."
+  },
+  "wizardShowAll": {
+    "message": "Mostrar todos os modelos"
+  },
+  "wizardFinish": {
+    "message": "Concluir"
+  },
+  "tierFast": {
+    "message": "Rápido e económico"
+  },
+  "tierBalanced": {
+    "message": "Recomendado"
+  },
+  "tierCapable": {
+    "message": "O mais capaz"
+  },
+  "testMissingKey": {
+    "message": "Introduza primeiro a sua chave de API."
+  },
+  "testBadKey": {
+    "message": "O serviço recusou esta chave."
+  },
+  "testNoCredit": {
+    "message": "A chave funciona mas a conta não tem crédito."
+  },
+  "testBadUrl": {
+    "message": "Nada responde nesse endereço."
+  },
+  "testRateLimited": {
+    "message": "Demasiados pedidos neste momento — tente daqui a pouco."
+  },
+  "testProviderDown": {
+    "message": "O serviço está com problemas. Tente mais tarde."
+  },
+  "testNetwork": {
+    "message": "Não foi possível contactar o serviço. Verifique a ligação ou o endereço."
+  },
+  "testNoModel": {
+    "message": "Escolha um modelo para o teste."
+  },
+  "secLanguage": {
+    "message": "Idioma"
+  },
+  "optUiLang": {
+    "message": "Interface"
+  },
+  "optAgentLang": {
+    "message": "O assistente responde em"
+  },
+  "optAuto": {
+    "message": "Igual ao navegador"
+  },
+  "optSameAsUi": {
+    "message": "Igual à interface"
+  },
+  "secAppearance": {
+    "message": "Aparência"
+  },
+  "optTheme": {
+    "message": "Tema"
+  },
+  "themeSystem": {
+    "message": "Conforme o sistema"
+  },
+  "themeLight": {
+    "message": "Claro"
+  },
+  "themeDark": {
+    "message": "Escuro"
+  },
+  "optHighlight": {
+    "message": "Mostrar o que o assistente toca"
+  },
+  "optHighlightHint": {
+    "message": "Destaca cada elemento da página quando o assistente atua sobre ele."
+  },
+  "secBehaviour": {
+    "message": "Comportamento"
+  },
+  "optInstructions": {
+    "message": "Instruções personalizadas"
+  },
+  "optInstructionsHint": {
+    "message": "O que quiser que o assistente tenha sempre em conta."
+  },
+  "optInstructionsPlaceholder": {
+    "message": "ex. Responde sempre em unidades métricas. Prefere fontes oficiais."
+  },
+  "optMaxSteps": {
+    "message": "Passos antes de perguntar se continua"
+  },
+  "optMaxStepsHint": {
+    "message": "Um limite de segurança em tarefas longas. O assistente pausa e pergunta antes de continuar."
+  },
+  "optNavAlways": {
+    "message": "Permitir que o assistente mude de site sem perguntar"
+  },
+  "secMemory": {
+    "message": "Memória"
+  },
+  "optMemory": {
+    "message": "Deixar o assistente lembrar-se de coisas sobre si"
+  },
+  "memoryEmpty": {
+    "message": "Ainda nada memorizado."
+  },
+  "memoryForget": {
+    "message": "Esquecer"
+  },
+  "memoryForgetAll": {
+    "message": "Esquecer tudo"
+  },
+  "secHistory": {
+    "message": "Histórico de conversas"
+  },
+  "optHistory": {
+    "message": "Guardar conversas anteriores"
+  },
+  "optRetention": {
+    "message": "Conversas a manter"
+  },
+  "historyEmpty": {
+    "message": "Nenhuma conversa guardada."
+  },
+  "historySearch": {
+    "message": "Pesquisar…"
+  },
+  "historyClear": {
+    "message": "Eliminar tudo"
+  },
+  "historyClearConfirm": {
+    "message": "Eliminar todas as conversas guardadas?"
+  },
+  "secAdvanced": {
+    "message": "Avançado"
+  },
+  "optDebug": {
+    "message": "Mostrar detalhes técnicos"
+  },
+  "optDebugHint": {
+    "message": "Adiciona um painel de diagnóstico útil para reportar um problema."
+  },
+  "privacyNote": {
+    "message": "A sua chave de API e as suas conversas ficam neste computador. O conteúdo das páginas só é enviado para o serviço de IA que configurou."
+  }
+}

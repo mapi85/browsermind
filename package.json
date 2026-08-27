@@ -1,6 +1,6 @@
 {
   "name": "browsermind",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "description": "Dev tooling for the BrowserMind Chrome extension (no build step — tests only)",
