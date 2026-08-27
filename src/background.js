@@ -1,1011 +1,901 @@
 // ═══════════════════════════════════════════════
-//  BrowserMind v1.0.0 — Background Service Worker
+//  BrowserMind — Background service worker
+//
+//  Owns everything that touches Chrome: tab lifecycle, script injection,
+//  downloads and outbound HTTP. The agent loop itself lives in
+//  background/engine.js and reaches the browser only through executeTool().
 // ═══════════════════════════════════════════════
 
-import { fetchProviderModels } from './shared/providers.js';
+import { migrateStorage } from './shared/settings.js';
+import { fetchProviderModels, testProvider, mergeModelLists } from './shared/providers.js';
 import {
   initEngine, startTask, continueTask, stopTask, clearTask,
-  getTaskState, respondNavConfirm,
+  getSession, respondNavConfirm, retireSession, notifyTabNavigated,
+  setSessionProvider,
 } from './background/engine.js';
 
-// ─── KEEP-ALIVE SERVICE WORKER (MV3) ────────────
-// In Manifest V3, the Service Worker is terminated after ~30s of inactivity.
-// If an API call is in flight (e.g. 30-60s), the response could be lost.
-// Using chrome.alarms is a standard and reliable method to keep the SW active.
-chrome.alarms.create('keepAlive', { periodInMinutes: 0.4 });
+// ─── LIFECYCLE ──────────────────────────────────
+
+chrome.runtime.onInstalled.addListener(async () => {
+  const { removed } = await migrateStorage();
+  if (removed.length > 0) console.info('BrowserMind: removed retired settings', removed);
+});
+
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
+  .catch(e => console.warn('BrowserMind: setPanelBehavior failed', e.message));
+
+// ─── KEEP-ALIVE ─────────────────────────────────
+// MV3 kills an idle worker after ~30s, which would abandon a running task
+// mid-flight. The alarm only exists while a task is actually running: a
+// permanent heartbeat drains battery and reads badly in review.
+// 30s is the platform minimum — anything lower is silently clamped.
+
+const KEEPALIVE = 'bm-keepalive';
+let keepAliveHolders = 0;
+
+async function acquireKeepAlive() {
+  keepAliveHolders++;
+  if (keepAliveHolders === 1) {
+    await chrome.alarms.create(KEEPALIVE, { periodInMinutes: 0.5 });
+  }
+}
+
+async function releaseKeepAlive() {
+  keepAliveHolders = Math.max(0, keepAliveHolders - 1);
+  if (keepAliveHolders === 0) {
+    await chrome.alarms.clear(KEEPALIVE);
+  }
+}
+
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'keepAlive') {
-    // Silent heartbeat - keeps the Service Worker awake
-    chrome.storage.local.get('__sw_ping__', () => {});
+  if (alarm.name === KEEPALIVE) {
+    // Touching storage resets the worker's idle timer.
+    chrome.storage.local.get('__bm_ping__', () => {});
   }
 });
 
-// Open side panel on icon click
-chrome.action.onClicked.addListener((tab) => {
-  chrome.sidePanel.open({ tabId: tab.id });
-});
-chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+// ─── TAB TRACKING ───────────────────────────────
+// The engine needs to know which page a tab is actually on: the navigation
+// guard compares domains, and a task must not keep acting on a page the user
+// navigated away from underneath it.
 
-// ─── TAB CHANGE DETECTION ───────────────────────
-// Notify sidepanel when user switches tabs
-chrome.tabs.onActivated.addListener(async (activeInfo) => {
+const tabUrls = new Map();
+
+async function primeTabUrls() {
   try {
-    const tab = await chrome.tabs.get(activeInfo.tabId);
-    // Broadcast to sidepanel
-    chrome.runtime.sendMessage({
-      type: 'TAB_CHANGED',
-      tabId: activeInfo.tabId,
-      url: tab.url,
-      title: tab.title
-    }).catch(e => { console.warn('BrowserMind: TAB_CHANGED send failed', e.message); });
-  } catch (e) {}
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) if (tab.id != null) tabUrls.set(tab.id, tab.url || '');
+  } catch { /* nothing to prime */ }
+}
+primeTabUrls();
+
+function broadcastToPanel(message) {
+  chrome.runtime.sendMessage(message).catch(() => {
+    // No panel open. Not an error: state is replayed when one opens.
+  });
+}
+
+chrome.tabs.onActivated.addListener(async ({ tabId, windowId }) => {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    tabUrls.set(tabId, tab.url || '');
+    broadcastToPanel({ type: 'TAB_ACTIVATED', tabId, windowId, url: tab.url, title: tab.title });
+  } catch { /* tab vanished between event and lookup */ }
 });
 
-// Also notify when a tab's URL changes (navigation within tab)
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (!changeInfo.url && changeInfo.status !== 'complete') return;
+
+  const previous = tabUrls.get(tabId) || '';
+  const current = tab.url || '';
+  tabUrls.set(tabId, current);
+
+  if (changeInfo.url && previous && previous !== current) {
+    notifyTabNavigated(tabId, current);
+  }
   if (changeInfo.status === 'complete') {
-    chrome.runtime.sendMessage({
-      type: 'TAB_UPDATED',
-      tabId,
-      url: tab.url,
-      title: tab.title
-    }).catch(e => { console.warn('BrowserMind: TAB_UPDATED send failed', e.message); });
-  }
-});
-
-// ─── MESSAGE HANDLER ────────────────────────────
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'DOWNLOAD_DATA_URL') {
-    chrome.downloads.download({ url: message.url, filename: message.filename, conflictAction: 'uniquify' })
-      .then(id => sendResponse({ downloadId: id }))
-      .catch(err => sendResponse({ error: err.message }));
-    return true;
-  }
-  if (message.type === 'LOAD_REMOTE_TOOLS') {
-    // Fetch remote tools JSON from a URL, cache them, return result
-    const url = message.url;
-    if (!url) { sendResponse({ error: 'No URL provided' }); return true; }
-    fetch(url, { cache: 'no-cache' })
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then(data => {
-        const tools = Array.isArray(data) ? data : (data.tools || []);
-        const valid = tools.filter(t => t.name && t.description && t.input_schema)
-          .map(t => ({ ...t, category: 'remote', source: url }));
-        chrome.storage.local.set({ remoteToolsCache: valid, remoteToolsCachedAt: Date.now(), remoteToolsUrl: url });
-        sendResponse({ tools: valid, count: valid.length });
-      })
-      .catch(err => sendResponse({ error: err.message }));
-    return true;
-  }
-  if (message.type === 'GET_PAGE_CONTEXT') {
-    getPageContext(message.tabId).then(sendResponse).catch(err =>
-      sendResponse({ context: `Erreur: ${err.message}` })
-    );
-    return true;
-  }
-  if (message.type === 'EXECUTE_TOOL') {
-    executeTool(message.tool, message.input, message.tabId)
-      .then(result => sendResponse({ result }))
-      .catch(err => sendResponse({ error: err.message }));
-    return true;
-  }
-  if (message.type === 'GET_ACTIVE_TAB') {
-    chrome.tabs.query({ active: true, currentWindow: true })
-      .then(([tab]) => sendResponse({ tab }))
-      .catch(() => sendResponse({ tab: null }));
-    return true;
-  }
-  if (message.type === 'FETCH_MODELS') {
-    fetchModels(message.provider, message.apiKey, message.baseUrl)
-      .then(models => sendResponse({ models }))
-      .catch(err => sendResponse({ error: err.message }));
-    return true;
-  }
-  // ─── Agent engine (the loop runs here, the panel just renders) ───
-  if (message.type === 'START_TASK') {
-    startTask(message).then(sendResponse).catch(err => sendResponse({ error: err.message }));
-    return true;
-  }
-  if (message.type === 'CONTINUE_TASK') {
-    sendResponse(continueTask(message.tabId));
-    return false;
-  }
-  if (message.type === 'STOP_TASK') {
-    sendResponse(stopTask(message.tabId));
-    return false;
-  }
-  if (message.type === 'CLEAR_TASK') {
-    sendResponse(clearTask(message.tabId));
-    return false;
-  }
-  if (message.type === 'GET_TASK_STATE') {
-    sendResponse(getTaskState(message.tabId));
-    return false;
-  }
-  if (message.type === 'NAV_CONFIRM_RESPONSE') {
-    sendResponse(respondNavConfirm(message.requestId, message.allowed));
-    return false;
-  }
-});
-
-// Wire the engine to this worker's tool executor and page-context reader
-initEngine({
-  executeTool: async (tool, input, tabId) => executeTool(tool, input, tabId),
-  getPageContext: (tabId) => getPageContext(tabId),
-});
-
-// ─── MODEL FETCHER ──────────────────────────────
-// Provider endpoints, preset fallbacks and normalization live in shared/providers.js
-async function fetchModels(providerId, apiKey, baseUrl) {
-  return fetchProviderModels(providerId, apiKey, baseUrl);
-}
-
-// ─── PAGE CONTEXT ────────────────────────────────
-async function getPageContext(tabId) {
-  let targetTabId = tabId;
-  if (!targetTabId) {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    targetTabId = tab?.id;
-  }
-  if (!targetTabId) return { context: 'Aucun onglet actif.' };
-
-  try {
-    const [result] = await chrome.scripting.executeScript({
-      target: { tabId: targetTabId },
-      func: extractPageContext
+    broadcastToPanel({
+      type: 'TAB_UPDATED', tabId, windowId: tab.windowId, url: current, title: tab.title,
     });
-    return { context: JSON.stringify(result.result, null, 2) };
-  } catch (err) {
-    return { context: `Page inaccessible: ${err.message}` };
   }
-}
+});
 
-function extractPageContext() {
-  const info = {
+chrome.tabs.onRemoved.addListener((tabId) => {
+  tabUrls.delete(tabId);
+  // The task stops, the conversation is set aside: a tab reopened on the
+  // same page picks it back up.
+  retireSession(tabId);
+  broadcastToPanel({ type: 'TAB_CLOSED', tabId });
+});
+
+// ─── MESSAGE HUB ────────────────────────────────
+
+const HANDLERS = {
+  GET_ACTIVE_TAB: async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    return { tab: tab ? { id: tab.id, url: tab.url, title: tab.title, windowId: tab.windowId } : null };
+  },
+
+  GET_WINDOW_TABS: async () => {
+    const tabs = await chrome.tabs.query({ currentWindow: true });
+    return { tabs: tabs.map(t => ({ id: t.id, url: t.url, title: t.title, active: t.active })) };
+  },
+
+  FETCH_MODELS: async ({ typeId, apiKey, baseUrl }) => {
+    const models = await fetchProviderModels(typeId, apiKey, baseUrl);
+    return { models: mergeModelLists(typeId, models) };
+  },
+
+  TEST_PROVIDER: ({ typeId, apiKey, baseUrl, probeModel, mode }) =>
+    testProvider(typeId, apiKey, baseUrl, probeModel, mode),
+
+  START_TASK: (msg) => startTask(msg),
+  CONTINUE_TASK: ({ tabId }) => continueTask(tabId),
+  STOP_TASK: ({ tabId }) => stopTask(tabId),
+  CLEAR_TASK: ({ tabId }) => clearTask(tabId),
+  GET_SESSION: ({ tabId, url }) => getSession(tabId, url),
+  SET_SESSION_PROVIDER: ({ tabId, instanceId, model }) => setSessionProvider(tabId, { instanceId, model }),
+  NAV_CONFIRM_RESPONSE: ({ requestId, allowed }) => respondNavConfirm(requestId, allowed),
+
+  EXECUTE_TOOL: async ({ tool, input, tabId }) => ({ result: await executeTool(tool, input, tabId) }),
+};
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  const handler = HANDLERS[message?.type];
+  if (!handler) return false;
+
+  Promise.resolve(handler(message))
+    .then(sendResponse)
+    .catch(err => sendResponse({ error: err.message, code: err.code }));
+  return true; // async response
+});
+
+// ─── ENGINE WIRING ──────────────────────────────
+
+initEngine({
+  executeTool: (tool, input, tabId) => executeTool(tool, input, tabId),
+  getTabUrl: (tabId) => tabUrls.get(tabId) || '',
+  acquireKeepAlive,
+  releaseKeepAlive,
+  broadcast: broadcastToPanel,
+});
+
+// ═══════════════════════════════════════════════
+//  PAGE SNAPSHOT
+//
+//  The model cannot verify a CSS selector it invented, so it is never asked
+//  to. read_page numbers every interactive element and stamps that number on
+//  the node as data-bm-idx; actions then address elements by number. Stale
+//  numbers simply fail to resolve, which tells the model to read again.
+// ═══════════════════════════════════════════════
+
+const SNAPSHOT_ATTR = 'data-bm-idx';
+
+/* eslint-disable no-undef -- the functions below run in the page, not here */
+
+function pageSnapshot(attr, includeText, textLimit) {
+  const SELECTOR = [
+    'a[href]', 'button', 'input', 'select', 'textarea', 'summary',
+    '[role="button"]', '[role="link"]', '[role="checkbox"]', '[role="radio"]',
+    '[role="tab"]', '[role="menuitem"]', '[role="switch"]', '[role="option"]',
+    '[contenteditable=""]', '[contenteditable="true"]', '[onclick]',
+  ].join(',');
+
+  for (const stale of document.querySelectorAll('[' + attr + ']')) {
+    stale.removeAttribute(attr);
+  }
+
+  const isVisible = (el) => {
+    const rect = el.getBoundingClientRect();
+    if (rect.width < 2 || rect.height < 2) return false;
+    const style = getComputedStyle(el);
+    if (style.visibility === 'hidden' || style.display === 'none') return false;
+    if (Number(style.opacity) === 0) return false;
+    return true;
+  };
+
+  const labelFor = (el) => {
+    const aria = el.getAttribute('aria-label');
+    if (aria) return aria.trim();
+
+    if (el.id) {
+      const label = document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
+      if (label?.textContent.trim()) return label.textContent.trim();
+    }
+    const wrapping = el.closest('label');
+    if (wrapping?.textContent.trim()) return wrapping.textContent.trim();
+
+    const own = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    if (own) return own;
+
+    return el.getAttribute('placeholder')
+      || el.getAttribute('title')
+      || el.getAttribute('name')
+      || el.value
+      || '';
+  };
+
+  const elements = [];
+  let index = 0;
+
+  for (const el of document.querySelectorAll(SELECTOR)) {
+    if (elements.length >= 300) break;
+    if (el.disabled) continue;
+    if (el.type === 'hidden') continue;
+    if (!isVisible(el)) continue;
+
+    // Skip a wrapper whose only purpose is to contain another candidate:
+    // clicking the inner control is what the user would do.
+    if (el.querySelector(SELECTOR) && !['A', 'BUTTON'].includes(el.tagName)) continue;
+
+    el.setAttribute(attr, String(index));
+    const rect = el.getBoundingClientRect();
+
+    const entry = {
+      i: index,
+      tag: el.tagName.toLowerCase(),
+      label: labelFor(el).slice(0, 120),
+      inView: rect.top < innerHeight && rect.bottom > 0,
+    };
+    if (el.type) entry.type = el.type;
+    const role = el.getAttribute('role');
+    if (role) entry.role = role;
+    if (el.tagName === 'A' && el.href) entry.href = el.href.slice(0, 200);
+    if (el.type === 'checkbox' || el.type === 'radio') entry.checked = !!el.checked;
+    if (('value' in el) && el.value && el.type !== 'password') {
+      entry.value = String(el.value).slice(0, 60);
+    }
+    if (el.tagName === 'SELECT') {
+      entry.options = Array.from(el.options).slice(0, 25).map(o => o.text.trim().slice(0, 40));
+    }
+
+    elements.push(entry);
+    index++;
+  }
+
+  const result = {
     url: location.href,
     title: document.title,
-    textContent: document.body.innerText.substring(0, 3000)
+    scroll: { y: Math.round(scrollY), height: Math.round(document.body.scrollHeight), viewport: innerHeight },
+    elements,
   };
-  info.links = Array.from(document.querySelectorAll('a[href]'))
-    .slice(0, 30).map(a => ({ text: a.textContent.trim().substring(0, 60), href: a.href })).filter(l => l.text);
-  const sensitiveTypes = new Set(['password', 'hidden', 'submit', 'reset', 'button']);
-  info.forms = Array.from(document.forms).map(form => ({
-    id: form.id || form.name, action: form.action,
-    fields: Array.from(form.elements).map(el => ({
-      type: el.type, name: el.name || el.id,
-      placeholder: el.placeholder,
-      value: sensitiveTypes.has(el.type) ? '[redacted]' : (el.value || '').substring(0, 50)
-    })).filter(f => f.name && !sensitiveTypes.has(f.type))
-  }));
-  info.buttons = Array.from(document.querySelectorAll('button,[role="button"],input[type="submit"]'))
-    .slice(0, 20).map(b => ({ text: b.textContent.trim().substring(0, 50) || b.value, id: b.id })).filter(b => b.text);
-  return info;
+
+  if (includeText) {
+    result.text = (document.body.innerText || '')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+      .slice(0, textLimit);
+  }
+  return result;
 }
 
-// ─── TOOL EXECUTOR ──────────────────────────────
-async function executeTool(toolName, input, tabId) {
+function pageAct(attr, action) {
+  const resolve = () => {
+    if (action.element !== undefined && action.element !== null) {
+      return document.querySelector(`[${attr}="${Number(action.element)}"]`);
+    }
+    if (action.selector) return document.querySelector(action.selector);
+    return null;
+  };
+
+  const describe = (el) => ({
+    tag: el.tagName.toLowerCase(),
+    label: (el.getAttribute('aria-label') || el.textContent || el.value || '')
+      .replace(/\s+/g, ' ').trim().slice(0, 60),
+  });
+
+  const setNativeValue = (el, value) => {
+    const proto = el instanceof HTMLTextAreaElement
+      ? HTMLTextAreaElement.prototype
+      : HTMLInputElement.prototype;
+    const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+    if (setter) setter.call(el, value);
+    else el.value = value;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
+  const missing = () => ({
+    error: action.element !== undefined
+      ? `No element numbered ${action.element} on this page. Call read_page again — the page has changed.`
+      : `No element matched "${action.selector}".`,
+  });
+
+  const highlight = (el) => {
+    if (typeof window.__bmHighlight === 'function') {
+      try { window.__bmHighlight(el); } catch { /* cosmetic only */ }
+    }
+  };
+
+  try {
+    switch (action.kind) {
+      case 'click': {
+        const el = resolve();
+        if (!el) return missing();
+        el.scrollIntoView({ block: 'center', inline: 'nearest' });
+        highlight(el);
+        el.focus?.({ preventScroll: true });
+        el.click();
+        return { success: true, clicked: describe(el), url: location.href };
+      }
+
+      case 'type': {
+        const el = resolve();
+        if (!el) return missing();
+        el.scrollIntoView({ block: 'center', inline: 'nearest' });
+        highlight(el);
+        el.focus?.({ preventScroll: true });
+
+        if (el.isContentEditable) {
+          if (action.clear_first !== false) el.textContent = '';
+          el.textContent += action.text;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        } else {
+          setNativeValue(el, action.clear_first === false ? (el.value || '') + action.text : action.text);
+        }
+
+        if (action.submit) {
+          // Enter first, because search boxes and comboboxes usually listen
+          // for the key rather than for a form submit. requestSubmit() only
+          // runs if the field really belongs to a form and nothing handled
+          // the key, and unlike form.submit() it still fires validation and
+          // the site's own submit handler.
+          const enter = { bubbles: true, cancelable: true, key: 'Enter', code: 'Enter', keyCode: 13, which: 13 };
+          const notCancelled = el.dispatchEvent(new KeyboardEvent('keydown', enter));
+          el.dispatchEvent(new KeyboardEvent('keyup', enter));
+          if (notCancelled && el.form?.requestSubmit) el.form.requestSubmit();
+        }
+        return { success: true, typedInto: describe(el), url: location.href };
+      }
+
+      case 'fill': {
+        const results = [];
+        for (const field of action.fields) {
+          const el = field.element !== undefined && field.element !== null
+            ? document.querySelector(`[${attr}="${Number(field.element)}"]`)
+            : (field.selector ? document.querySelector(field.selector) : null);
+
+          if (!el) {
+            results.push({ field: field.element ?? field.selector, error: 'not found' });
+            continue;
+          }
+          highlight(el);
+
+          if (el.tagName === 'SELECT') {
+            const wanted = String(field.value).toLowerCase();
+            const option = Array.from(el.options).find(o =>
+              o.value.toLowerCase() === wanted || o.text.trim().toLowerCase().includes(wanted));
+            if (option) {
+              el.value = option.value;
+              el.dispatchEvent(new Event('change', { bubbles: true }));
+              results.push({ field: field.element ?? field.selector, success: true, selected: option.text.trim() });
+            } else {
+              results.push({ field: field.element ?? field.selector, error: `no option matching "${field.value}"` });
+            }
+          } else if (el.type === 'checkbox' || el.type === 'radio') {
+            const want = field.value === true || String(field.value).toLowerCase() === 'true';
+            if (el.checked !== want) el.click();
+            results.push({ field: field.element ?? field.selector, success: true, checked: el.checked });
+          } else {
+            setNativeValue(el, String(field.value));
+            results.push({ field: field.element ?? field.selector, success: true });
+          }
+        }
+
+        let submitted = false;
+        if (action.submit) {
+          const form = document.querySelector('form');
+          const button = document.querySelector('form [type="submit"], form button:not([type="button"])');
+          if (button) { button.click(); submitted = true; }
+          else if (form?.requestSubmit) { form.requestSubmit(); submitted = true; }
+        }
+        return { success: true, results, submitted, url: location.href };
+      }
+
+      case 'scroll': {
+        const step = action.amount || Math.round(innerHeight * 0.85);
+        const target = {
+          down: scrollY + step,
+          up: scrollY - step,
+          top: 0,
+          bottom: document.body.scrollHeight,
+        }[action.direction] ?? scrollY + step;
+
+        scrollTo({ top: target, behavior: 'instant' });
+        return {
+          success: true,
+          scrollY: Math.round(scrollY),
+          atBottom: scrollY + innerHeight >= document.body.scrollHeight - 4,
+        };
+      }
+
+      case 'extract': {
+        const root = action.selector ? document.querySelector(action.selector) : document;
+        if (!root) return { error: `No element matched "${action.selector}".` };
+
+        if (action.data_type === 'table') {
+          const tables = Array.from(root.querySelectorAll('table')).map(t => ({
+            headers: Array.from(t.querySelectorAll('th')).map(th => th.textContent.trim()),
+            rows: Array.from(t.querySelectorAll('tbody tr, tr')).slice(0, 500)
+              .map(tr => Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim()))
+              .filter(r => r.length > 0),
+          }));
+          return { data: tables, count: tables.length };
+        }
+        if (action.data_type === 'links') {
+          const links = Array.from(root.querySelectorAll('a[href]')).slice(0, 300)
+            .map(a => ({ text: a.textContent.replace(/\s+/g, ' ').trim(), href: a.href }))
+            .filter(l => l.text);
+          return { data: links, count: links.length };
+        }
+        if (action.data_type === 'list') {
+          const items = Array.from(root.querySelectorAll('li')).slice(0, 500)
+            .map(li => li.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean);
+          return { data: items, count: items.length };
+        }
+        if (action.data_type === 'images') {
+          const images = Array.from(root.querySelectorAll('img')).slice(0, 200)
+            .map(img => ({ src: img.src, alt: img.alt })).filter(i => i.src);
+          return { data: images, count: images.length };
+        }
+        return { data: (root.innerText || '').replace(/\n{3,}/g, '\n\n').trim().slice(0, 12000) };
+      }
+
+      case 'waitFor':
+        return { found: !!document.querySelector(action.selector) };
+
+      default:
+        return { error: `Unknown page action: ${action.kind}` };
+    }
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+/* eslint-enable no-undef */
+
+// ─── INJECTION HELPERS ──────────────────────────
+
+const RESTRICTED = /^(chrome|edge|about|devtools|view-source|chrome-extension):|^https:\/\/chromewebstore\.google\.com/;
+
+function guardTab(tab) {
+  if (!tab?.url) return;
+  if (RESTRICTED.test(tab.url)) {
+    throw new Error('This page is protected by Chrome and cannot be read or acted on. Ask the user to switch to a normal web page.');
+  }
+}
+
+async function inPage(tabId, fn, args) {
+  const tab = await chrome.tabs.get(tabId);
+  guardTab(tab);
+
+  const [frame] = await chrome.scripting.executeScript({
+    target: { tabId }, func: fn, args,
+  });
+  const result = frame?.result;
+  if (result?.error) throw new Error(result.error);
+  return result ?? { success: true };
+}
+
+// The highlight overlay is injected on demand rather than declared as a
+// content script, so the extension does not run on every page the user visits.
+async function ensureOverlay(tabId) {
+  try {
+    await chrome.scripting.executeScript({ target: { tabId }, files: ['src/content.js'] });
+  } catch { /* restricted page: the action itself reports the real error */ }
+}
+
+async function highlightEnabled() {
+  const { highlightActions } = await chrome.storage.local.get('highlightActions');
+  return highlightActions !== false;
+}
+
+// ─── SNAPSHOT FORMATTING ────────────────────────
+// A numbered plain-text list costs roughly a third of the equivalent JSON and
+// is what the model reads most reliably.
+
+function formatSnapshot(snap, limit = Infinity) {
+  const shown = snap.elements.slice(0, limit);
+  const lines = shown.map((el) => {
+    const bits = [`[${el.i}]`, `<${el.tag}${el.type ? ' ' + el.type : ''}>`];
+    if (el.role) bits.push(`role=${el.role}`);
+    if (el.label) bits.push(`"${el.label}"`);
+    if (el.value) bits.push(`value="${el.value}"`);
+    if (el.checked !== undefined) bits.push(el.checked ? '[checked]' : '[unchecked]');
+    if (el.options) bits.push(`options: ${el.options.join(' | ')}`);
+    if (!el.inView) bits.push('(off-screen)');
+    return bits.join(' ');
+  });
+
+  const scrolled = snap.scroll.height > snap.scroll.viewport + 8
+    ? `\nScroll: ${Math.round((snap.scroll.y / Math.max(1, snap.scroll.height - snap.scroll.viewport)) * 100)}% of the page`
+    : '';
+
+  const hidden = snap.elements.length - shown.length;
+  if (hidden > 0) {
+    lines.push(`… ${hidden} more elements. Call read_page for the full list.`);
+  }
+
+  return {
+    url: snap.url,
+    title: snap.title,
+    elements: lines.join('\n') || '(no interactive element found)',
+    text: snap.text,
+    hint: `Address elements by their number, e.g. click {"element": 0}.${scrolled}`,
+  };
+}
+
+// A dense page carries hundreds of controls. The full list is worth its tokens
+// when the agent asks to read the page; repeating it after every single click
+// is what fills a context window in a dozen steps.
+const POST_ACTION_ELEMENTS = 80;
+
+// ═══════════════════════════════════════════════
+//  TOOL EXECUTOR
+// ═══════════════════════════════════════════════
+
+const PAGE_TOOLS = new Set(['read_page', 'click', 'type_text', 'fill_form', 'scroll', 'extract_data']);
+
+async function executeTool(toolName, input = {}, tabId) {
   let targetTabId = tabId;
   if (!targetTabId) {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     targetTabId = tab?.id;
   }
-  if (!targetTabId) throw new Error('Aucun onglet actif');
+  if (!targetTabId) throw new Error('No active tab.');
 
-  const tab = await chrome.tabs.get(targetTabId);
-
-  if (INTERACTIVE_TOOLS.includes(toolName)) {
-    // Visual feedback (click highlight) is injected on demand instead of
-    // running a static content script on every page the user visits.
-    await ensureContentScript(targetTabId);
-    await randomDelayBetweenActions();
+  if (PAGE_TOOLS.has(toolName) && await highlightEnabled()) {
+    await ensureOverlay(targetTabId);
   }
 
   switch (toolName) {
-    case 'get_page_content':   return getFullPageContent(targetTabId);
-    case 'click':              return executeWithFallback(targetTabId, domClick, humanClickFallback, input);
-    case 'type_text':          return executeWithFallback(targetTabId, domTypeText, humanTypeFallback, input);
-    case 'scroll':             return executeInPage(targetTabId, domScroll, input);
-    case 'navigate':           return navigateTo(targetTabId, input);
-    case 'fill_form':          return executeWithFallback(targetTabId, domFillForm, humanFillFormFallback, input);
-    case 'extract_data':       return executeInPage(targetTabId, domExtractData, input);
-    case 'download_file':      return downloadFile(input);
-    case 'wait':               return waitAction(targetTabId, input);
-    case 'take_screenshot':    return takeScreenshot(targetTabId);
-    case 'generate_document':  return generateDocument(targetTabId, input);
-    case 'api_call':           return callExternalAPI(input);
-    case 'web_search':         return webSearch(input);
-    case 'new_tab':            return openNewTab(input);
-    default: {
-      // Custom tool: look it up in storage and execute via its executor hint
-      const result = await executeCustomTool(toolName, input, targetTabId);
-      if (result !== null) return result;
-      throw new Error(`Outil inconnu: ${toolName}`);
-    }
+    case 'read_page':         return readPage(targetTabId, input);
+    case 'click':             return actOnPage(targetTabId, { kind: 'click', ...input });
+    case 'type_text':         return actOnPage(targetTabId, { kind: 'type', ...input });
+    case 'fill_form':         return actOnPage(targetTabId, { kind: 'fill', ...input });
+    case 'scroll':            return actOnPage(targetTabId, { kind: 'scroll', ...input });
+    case 'extract_data':      return actOnPage(targetTabId, { kind: 'extract', ...input });
+    case 'navigate':          return navigateTab(targetTabId, input);
+    case 'new_tab':           return openTab(input);
+    case 'wait':              return waitFor(targetTabId, input);
+    case 'take_screenshot':   return screenshot(targetTabId, input);
+    case 'generate_document': return generateDocument(targetTabId, input);
+    case 'download_file':     return downloadFile(input);
+    case 'web_search':        return webSearch(input);
+    case 'api_call':          return callApi(input);
+    default:
+      throw new Error(`Unknown tool: ${toolName}`);
   }
 }
 
-async function executeWithFallback(tabId, primaryFn, fallbackFn, input) {
+async function readPage(tabId, { include_text = true } = {}) {
+  const snap = await inPage(tabId, pageSnapshot, [SNAPSHOT_ATTR, include_text !== false, 8000]);
+  return formatSnapshot(snap);
+}
+
+// After an action the page usually changes. Re-reading the element list here
+// saves the model a whole extra round trip, and the numbers it gets back are
+// guaranteed to match the page it is about to act on.
+async function actOnPage(tabId, action) {
+  const result = await inPage(tabId, pageAct, [SNAPSHOT_ATTR, action]);
+
+  const mutating = ['click', 'type', 'fill', 'scroll'].includes(action.kind);
+  if (!mutating || result?.error) return result;
+
+  await settle(tabId);
   try {
-    return await executeInPage(tabId, primaryFn, input);
-  } catch (primaryErr) {
-    console.log(`[HumanFallback] Primary failed: ${primaryErr.message}, trying fallback...`);
-    try {
-      return await executeInPage(tabId, fallbackFn, input);
-    } catch (fallbackErr) {
-      console.log(`[HumanFallback] Fallback also failed: ${fallbackErr.message}`);
-      throw primaryErr;
-    }
+    const snap = await inPage(tabId, pageSnapshot, [SNAPSHOT_ATTR, false, 0]);
+    return { ...result, page: formatSnapshot(snap, POST_ACTION_ELEMENTS) };
+  } catch {
+    return result; // navigated away mid-action; the next read_page will catch up
   }
 }
 
-async function executeInPage(tabId, fn, args) {
-  const [result] = await chrome.scripting.executeScript({
-    target: { tabId }, func: fn, args: [args]
-  });
-  if (result.result?.error) throw new Error(result.result.error);
-  return result.result || { success: true };
-}
-
-// ═══════════════════════════════════════════════
-//  ANTI-BOT: Random delay between interactive tools
-// ═══════════════════════════════════════════════
-const INTERACTIVE_TOOLS = ['click', 'type_text', 'scroll', 'fill_form', 'navigate'];
-
-async function randomDelayBetweenActions() {
-  const delay = 200 + Math.random() * 600;
-  await new Promise(r => setTimeout(r, delay));
-}
-
-// Injects the highlight/toast helper into the tab the agent is acting on.
-// content.js guards against double-injection via window.__bm_loaded.
-async function ensureContentScript(tabId) {
-  try {
-    await chrome.scripting.executeScript({ target: { tabId }, files: ['src/content.js'] });
-  } catch (e) {
-    // Restricted page (chrome://, store, …) — the tool itself will report the real error
-  }
-}
-
-// ═══════════════════════════════════════════════
-//  DOM FUNCTIONS — Improved for reliability
-// ═══════════════════════════════════════════════
-function domClick({ selector, selector_type = 'css' }) {
-  try {
-    let el;
-    if (selector_type === 'text') {
-      const candidates = Array.from(document.querySelectorAll('a,button,[role="button"],input[type="submit"],li,div'))
-        .filter(e => e.textContent.trim().toLowerCase().includes(selector.toLowerCase()));
-      el = candidates[0];
-      if (!el) {
-        const partial = Array.from(document.querySelectorAll('a,button,[role="button"],input[type="submit"]'))
-          .find(e => e.textContent.trim().toLowerCase().includes(selector.toLowerCase().split(' ')[0]));
-        el = partial;
-      }
-    } else if (selector_type === 'xpath') {
-      el = document.evaluate(selector, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-    } else {
-      el = document.querySelector(selector);
-    }
-    
-    if (!el) {
-      // Fuzzy text matching for common elements
-      const candidates = Array.from(document.querySelectorAll('button, a, [role="button"], input[type="submit"], li, div, span, p')).filter(e =>
-        e.textContent && e.textContent.trim().toLowerCase().includes(selector.toLowerCase())
-      );
-      el = candidates[0];
-    }
-    
-    if (!el) return { error: `Élément non trouvé: ${selector}` };
-    
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    
-    const rect = el.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2 + (Math.random() - 0.5) * Math.min(rect.width * 0.3, 10);
-    const centerY = rect.top + rect.height / 2 + (Math.random() - 0.5) * Math.min(rect.height * 0.3, 10);
-    const pageX = centerX + window.scrollX;
-    const pageY = centerY + window.scrollY;
-    
-    const pointerEventInit = (x, y) => ({
-      bubbles: true, cancelable: true, view: window,
-      clientX: x - window.scrollX, clientY: y - window.scrollY,
-      pageX: x, pageY: y, screenX: x, screenY: y,
-      pointerId: 1, pointerType: 'mouse', isPrimary: true
-    });
-    const mouseEventInit = (x, y, type) => ({
-      bubbles: true, cancelable: true, view: window,
-      clientX: x - window.scrollX, clientY: y - window.scrollY,
-      pageX: x, pageY: y, screenX: x, screenY: y,
-      button: 0, buttons: 1
-    });
-    
-    setTimeout(() => el.dispatchEvent(new PointerEvent('pointerover', pointerEventInit(pageX, pageY))), 0);
-    setTimeout(() => el.dispatchEvent(new MouseEvent('mouseover', mouseEventInit(pageX, pageY, 'mouseover'))), 10);
-    setTimeout(() => el.dispatchEvent(new PointerEvent('pointermove', pointerEventInit(pageX, pageY))), 20);
-    setTimeout(() => el.dispatchEvent(new MouseEvent('mousemove', mouseEventInit(pageX, pageY, 'mousemove'))), 30);
-    setTimeout(() => el.dispatchEvent(new PointerEvent('pointerdown', pointerEventInit(pageX, pageY))), 40);
-    setTimeout(() => el.dispatchEvent(new MouseEvent('mousedown', mouseEventInit(pageX, pageY, 'mousedown'))), 50);
-    setTimeout(() => el.dispatchEvent(new PointerEvent('pointerup', pointerEventInit(pageX, pageY))), 60);
-    setTimeout(() => el.dispatchEvent(new MouseEvent('mouseup', mouseEventInit(pageX, pageY, 'mouseup'))), 70);
-    setTimeout(() => {
-      try { el.click(); } catch { el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); }
-      if (typeof window.__bm_highlight === 'function') window.__bm_highlight(el);
-    }, 80);
-    
-    return { success: true, tag: el.tagName, text: el.textContent.trim().substring(0, 50) };
-  } catch (e) { return { error: e.message }; }
-}
-
-async function domTypeText({ selector, text, clear_first = true }) {
-  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-  const randomDelay = () => 40 + Math.random() * 80;
-
-  try {
-    const el = document.querySelector(selector);
-    if (!el) return { error: `Champ non trouvé: ${selector}` };
-
-    el.focus();
-    if (clear_first) el.value = '';
-
-    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-    const setValue = (val) => {
-      if (nativeInputValueSetter) nativeInputValueSetter.call(el, val);
-      else el.value = val;
-      el.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
-    };
-
-    let current = '';
-
-    for (let idx = 0; idx < text.length; idx++) {
-      const char = text[idx];
-      current += char;
-      setValue(current);
-
-      const keyCode = char.charCodeAt(0);
-      const code = 'Key' + char.toUpperCase();
-
-      el.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: char, code, keyCode }));
-      el.dispatchEvent(new KeyboardEvent('keypress', { bubbles: true, cancelable: true, key: char, code, keyCode }));
-
-      await sleep(randomDelay());
-
-      el.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, cancelable: true, key: char, code, keyCode }));
-
-      if (idx < text.length - 1) await sleep(randomDelay());
-    }
-
-    el.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
-    el.dispatchEvent(new Event('blur', { bubbles: true, cancelable: true }));
-    return { success: true };
-  } catch (e) { return { error: e.message }; }
-}
-
-function humanMouseMove(el) {
-  const start = window.__bmLastMousePos || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-  const rect = el.getBoundingClientRect();
-  const end = { x: rect.left + rect.width / 2 + window.scrollX, y: rect.top + rect.height / 2 + window.scrollY };
-  const control = {
-    x: (start.x + end.x) / 2 + (Math.random() - 0.5) * 200,
-    y: (start.y + end.y) / 2 + (Math.random() - 0.5) * 200
-  };
-  const steps = 15 + Math.floor(Math.random() * 10);
+// Waits for the page to stop moving: either the navigation completes or the
+// DOM settles. Bounded so a busy page cannot stall the loop.
+function settle(tabId, timeout = 1200) {
   return new Promise((resolve) => {
-    let step = 0;
-    const move = () => {
-      const t = step / steps;
-      const x = (1 - t) * (1 - t) * start.x + 2 * (1 - t) * t * control.x + t * t * end.x;
-      const y = (1 - t) * (1 - t) * start.y + 2 * (1 - t) * t * control.y + t * t * end.y;
-      const clientX = x - window.scrollX;
-      const clientY = y - window.scrollY;
-      el.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true, clientX, clientY, pageX: x, pageY: y }));
-      el.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, cancelable: true, clientX, clientY, pageX: x, pageY: y, pointerId: 1, pointerType: 'mouse', isPrimary: true }));
-      window.__bmLastMousePos = { x, y };
-      step++;
-      if (step <= steps) setTimeout(move, 10 + Math.random() * 10);
-      else resolve();
-    };
-    move();
-  });
-}
-
-async function humanClickFallback({ selector, selector_type = 'css' }) {
-  try {
-    let el;
-    if (selector_type === 'text') {
-      el = Array.from(document.querySelectorAll('a,button,[role="button"],input[type="submit"]')).find(e => e.textContent.trim().toLowerCase().includes(selector.toLowerCase()));
-    } else if (selector_type === 'xpath') {
-      el = document.evaluate(selector, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-    } else {
-      el = document.querySelector(selector);
-    }
-    if (!el) return { error: 'Élément non trouvé: ' + selector };
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    await humanMouseMove(el);
-    await new Promise(r => setTimeout(r, 100 + Math.random() * 200));
-    const rect = el.getBoundingClientRect();
-    const pageX = rect.left + rect.width / 2 + window.scrollX;
-    const pageY = rect.top + rect.height / 2 + window.scrollY;
-    const pointerEventInit = (x, y) => ({ bubbles: true, cancelable: true, view: window, clientX: x - window.scrollX, clientY: y - window.scrollY, pageX: x, pageY: y, screenX: x, screenY: y, pointerId: 1, pointerType: 'mouse', isPrimary: true });
-    const mouseEventInit = (x, y) => ({ bubbles: true, cancelable: true, view: window, clientX: x - window.scrollX, clientY: y - window.scrollY, pageX: x, pageY: y, screenX: x, screenY: y, button: 0, buttons: 1 });
-    el.dispatchEvent(new PointerEvent('pointerover', pointerEventInit(pageX, pageY)));
-    el.dispatchEvent(new MouseEvent('mouseover', mouseEventInit(pageX, pageY)));
-    el.dispatchEvent(new PointerEvent('pointerdown', pointerEventInit(pageX, pageY)));
-    el.dispatchEvent(new MouseEvent('mousedown', mouseEventInit(pageX, pageY)));
-    el.dispatchEvent(new PointerEvent('pointerup', pointerEventInit(pageX, pageY)));
-    el.dispatchEvent(new MouseEvent('mouseup', mouseEventInit(pageX, pageY)));
-    el.dispatchEvent(new MouseEvent('click', mouseEventInit(pageX, pageY)));
-    return { success: true, tag: el.tagName, text: el.textContent.trim().substring(0, 50), fallback: true };
-  } catch (e) { return { error: e.message }; }
-}
-
-async function humanKeyboardNav({ selector, selector_type = 'css' }) {
-  try {
-    let targetEl;
-    if (selector_type === 'text') {
-      targetEl = Array.from(document.querySelectorAll('a,button,[role="button"],input,select,textarea,[tabindex]'))[0];
-      if (targetEl) {
-        const candidates = Array.from(document.querySelectorAll('a,button,[role="button"],input,select,textarea,[tabindex]')).filter(e => e.textContent?.trim().toLowerCase().includes(selector.toLowerCase()) || e.value?.toLowerCase().includes(selector.toLowerCase()));
-        targetEl = candidates[0];
-      }
-    } else if (selector_type === 'xpath') {
-      targetEl = document.evaluate(selector, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-    } else {
-      targetEl = document.querySelector(selector);
-    }
-    if (!targetEl) return { error: 'Élément non trouvé: ' + selector };
-    const focusable = Array.from(document.querySelectorAll('a,button,[role="button"],input,select,textarea,[tabindex]:not([tabindex="-1"])'));
-    const targetIndex = focusable.indexOf(targetEl);
-    const activeIndex = focusable.indexOf(document.activeElement);
-    const tabCount = targetIndex > activeIndex ? targetIndex - activeIndex : focusable.length - activeIndex + targetIndex;
-    for (let i = 0; i < tabCount; i++) {
-      await new Promise(r => setTimeout(r, 80 + Math.random() * 70));
-      document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Tab', keyCode: 9 }));
-      document.activeElement.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, cancelable: true, key: 'Tab', keyCode: 9 }));
-      focusable[focusable.indexOf(document.activeElement) + 1]?.focus();
-    }
-    await new Promise(r => setTimeout(r, 50));
-    const isButton = targetEl.tagName === 'BUTTON' || targetEl.getAttribute('role') === 'button' || targetEl.type === 'submit';
-    const key = isButton || targetEl.tagName === 'A' ? 'Enter' : ' ';
-    const keyCode = key === 'Enter' ? 13 : 32;
-    targetEl.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key, keyCode }));
-    targetEl.dispatchEvent(new KeyboardEvent('keypress', { bubbles: true, cancelable: true, key, keyCode }));
-    await new Promise(r => setTimeout(r, 30));
-    targetEl.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, cancelable: true, key, keyCode }));
-    if (targetEl.tagName === 'A' || isButton) {
-      try { targetEl.click(); } catch { targetEl.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); }
-    }
-    return { success: true, tag: targetEl.tagName, text: targetEl.textContent?.trim().substring(0, 50) || targetEl.value, fallback: true, keyboard: true };
-  } catch (e) { return { error: e.message }; }
-}
-
-async function humanTypeFallback({ selector, text, clear_first = true }) {
-  try {
-    const el = document.querySelector(selector);
-    if (!el) return { error: 'Champ non trouvé: ' + selector };
-    const focusable = Array.from(document.querySelectorAll('a,button,[role="button"],input,select,textarea,[tabindex]'));
-    const targetIndex = focusable.indexOf(el);
-    const activeIndex = focusable.indexOf(document.activeElement);
-    if (activeIndex !== targetIndex) {
-      const tabCount = targetIndex > activeIndex ? targetIndex - activeIndex : focusable.length - activeIndex + targetIndex;
-      for (let i = 0; i < tabCount; i++) {
-        await new Promise(r => setTimeout(r, 80 + Math.random() * 70));
-        document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Tab', keyCode: 9 }));
-        document.activeElement.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, cancelable: true, key: 'Tab', keyCode: 9 }));
-      }
-    }
-    el.focus();
-    if (clear_first) {
-      el.select();
-      await new Promise(r => setTimeout(r, 50));
-      el.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Delete', keyCode: 46 }));
-      el.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, cancelable: true, key: 'Delete', keyCode: 46 }));
-    }
-    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-    const setValue = (val) => {
-      if (nativeInputValueSetter) nativeInputValueSetter.call(el, val);
-      else el.value = val;
-      el.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: val.slice(-1) }));
-    };
-    let current = '';
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      current += char;
-      setValue(current);
-      el.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: char, code: 'Key' + char.toUpperCase(), keyCode: char.charCodeAt(0) }));
-      await new Promise(r => setTimeout(r, 40 + Math.random() * 80));
-      el.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, cancelable: true, key: char, code: 'Key' + char.toUpperCase(), keyCode: char.charCodeAt(0) }));
-      if (i > 0 && i % (5 + Math.floor(Math.random() * 5)) === 0) {
-        await new Promise(r => setTimeout(r, 200 + Math.random() * 200));
-      }
-    }
-    el.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
-    el.dispatchEvent(new Event('blur', { bubbles: true, cancelable: true }));
-    return { success: true, fallback: true, keyboard: true };
-  } catch (e) { return { error: e.message }; }
-}
-
-function domScroll({ direction, amount = 300 }) {
-  return new Promise((resolve) => {
-    const map = { down: [0, amount], up: [0, -amount], top: [0, 0], bottom: [0, document.body.scrollHeight] };
-    const [targetX, targetY] = map[direction] || [0, amount];
-    const startY = window.scrollY;
-    const deltaY = targetY - startY;
-    const duration = 300 + Math.random() * 300;
-    const startTime = performance.now();
-    
-    const easeOutQuad = (t) => t * (2 - t);
-    
-    const step = (currentTime) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = easeOutQuad(progress);
-      const currentY = startY + deltaY * eased;
-      
-      window.scrollTo(targetX, currentY);
-      
-      if (progress < 1) {
-        requestAnimationFrame(step);
-      } else {
-        resolve({ success: true, scrollY: window.scrollY });
-      }
-    };
-    
-    requestAnimationFrame(step);
-  });
-}
-
-async function humanFillFormFallback({ fields, submit = false }) {
-  const results = [];
-  for (const f of fields) {
-    try {
-      const el = document.querySelector(f.selector);
-      if (!el) { results.push({ selector: f.selector, error: 'Non trouvé' }); continue; }
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      await new Promise(r => setTimeout(r, 300));
-      const focusable = Array.from(document.querySelectorAll('input,select,textarea,button,[role="button"]'));
-      const targetIndex = focusable.indexOf(el);
-      const activeIndex = focusable.indexOf(document.activeElement);
-      if (activeIndex !== targetIndex && targetIndex >= 0) {
-        const tabCount = Math.abs(targetIndex - activeIndex);
-        for (let i = 0; i < tabCount; i++) {
-          document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Tab', keyCode: 9 }));
-          document.activeElement.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, cancelable: true, key: 'Tab', keyCode: 9 }));
-          await new Promise(r => setTimeout(r, 80 + Math.random() * 70));
-        }
-      }
-      el.focus();
-      const type = f.field_type || el.type;
-      if (type === 'select') {
-        el.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'ArrowDown', keyCode: 40 }));
-        el.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, cancelable: true, key: 'ArrowDown', keyCode: 40 }));
-        const opt = Array.from(el.options).find(o => o.value === f.value || o.text.toLowerCase().includes(f.value.toLowerCase()));
-        if (opt) { el.value = opt.value; el.dispatchEvent(new Event('change', { bubbles: true })); }
-      } else if (type === 'checkbox' || type === 'radio') {
-        const shouldCheck = f.value === 'true' || f.value === true;
-        if (el.checked !== shouldCheck) {
-          el.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: ' ', keyCode: 32 }));
-          el.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, cancelable: true, key: ' ', keyCode: 32 }));
-          el.checked = shouldCheck;
-          el.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-      } else {
-        el.select();
-        el.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Delete', keyCode: 46 }));
-        await new Promise(r => setTimeout(r, 50));
-        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-        if (nativeInputValueSetter) {
-          nativeInputValueSetter.call(el, f.value);
-        } else {
-          el.value = f.value;
-        }
-        el.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: f.value }));
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-      results.push({ selector: f.selector, success: true, fallback: true });
-    } catch (e) { results.push({ selector: f.selector, error: e.message }); }
-  }
-  if (submit) {
-    const btn = document.querySelector('form [type="submit"], form button:not([type])');
-    if (btn) { btn.focus(); btn.click(); } else { document.querySelector('form')?.submit(); }
-  }
-  return { results, submitted: submit, fallback: true };
-}
-
-function domFillForm({ fields, submit = false }) {
-  const results = [];
-  for (const f of fields) {
-    try {
-      const el = document.querySelector(f.selector);
-      if (!el) { results.push({ selector: f.selector, error: 'Non trouvé' }); continue; }
-      const type = f.field_type || el.type;
-      if (type === 'select') {
-        const opt = Array.from(el.options).find(o => o.value === f.value || o.text.toLowerCase().includes(f.value.toLowerCase()));
-        if (opt) { el.value = opt.value; el.dispatchEvent(new Event('change', { bubbles: true })); }
-      } else if (type === 'checkbox' || type === 'radio') {
-        el.checked = f.value === 'true' || f.value === true;
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-      } else {
-        el.value = f.value;
-        el.dispatchEvent(new Event('input', { bubbles: true }));
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-      results.push({ selector: f.selector, success: true });
-    } catch (e) { results.push({ selector: f.selector, error: e.message }); }
-  }
-  if (submit) {
-    const btn = document.querySelector('form [type="submit"], form button:not([type])');
-    if (btn) btn.click(); else document.querySelector('form')?.submit();
-  }
-  return { results, submitted: submit };
-}
-
-function domExtractData({ data_type, selector, format = 'json' }) {
-  try {
-    const root = selector ? document.querySelector(selector) : document;
-    let data;
-    if (data_type === 'table') {
-      data = Array.from(root.querySelectorAll('table')).map(t => ({
-        headers: Array.from(t.querySelectorAll('th')).map(th => th.textContent.trim()),
-        rows: Array.from(t.querySelectorAll('tr')).slice(1).map(tr =>
-          Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim()))
-      }));
-    } else if (data_type === 'links') {
-      data = Array.from(root.querySelectorAll('a[href]')).map(a => ({ text: a.textContent.trim(), href: a.href }));
-    } else if (data_type === 'list') {
-      data = Array.from(root.querySelectorAll('li')).map(li => li.textContent.trim());
-    } else if (data_type === 'images') {
-      data = Array.from(root.querySelectorAll('img')).map(img => ({ src: img.src, alt: img.alt }));
-    } else {
-      data = root?.innerText?.substring(0, 5000) || '';
-    }
-    return { data, type: data_type, format };
-  } catch (e) { return { error: e.message }; }
-}
-
-// ─── BACKGROUND-ONLY TOOLS ──────────────────────
-async function getFullPageContent(tabId) {
-  const [result] = await chrome.scripting.executeScript({
-    target: { tabId },
-    func: () => ({ text: document.body.innerText.substring(0, 10000), html: document.documentElement.outerHTML.substring(0, 5000) })
-  });
-  return result.result;
-}
-
-async function navigateTo(tabId, { url }) {
-  if (!url.startsWith('http')) url = 'https://' + url;
-  await chrome.tabs.update(tabId, { url });
-  await new Promise(resolve => {
-    let settled = false;
-    const cleanup = () => {
-      if (settled) return;
-      settled = true;
-      chrome.tabs.onUpdated.removeListener(fn);
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      chrome.tabs.onUpdated.removeListener(onUpdate);
       resolve();
     };
-    const fn = (id, info) => { if (id === tabId && info.status === 'complete') cleanup(); };
-    chrome.tabs.onUpdated.addListener(fn);
-    setTimeout(cleanup, 8000);
+    const onUpdate = (id, info) => { if (id === tabId && info.status === 'complete') finish(); };
+    chrome.tabs.onUpdated.addListener(onUpdate);
+    setTimeout(finish, timeout);
   });
-  return { success: true, url };
+}
+
+async function navigateTab(tabId, { url }) {
+  const target = normalizeUrl(url);
+  await chrome.tabs.update(tabId, { url: target });
+  await waitForLoad(tabId);
+  const tab = await chrome.tabs.get(tabId);
+  return { success: true, url: tab.url || target, title: tab.title };
+}
+
+async function openTab({ url, active = false }) {
+  const target = normalizeUrl(url);
+  const tab = await chrome.tabs.create({ url: target, active });
+  await waitForLoad(tab.id);
+  const loaded = await chrome.tabs.get(tab.id);
+  return { success: true, tabId: tab.id, url: loaded.url || target, title: loaded.title };
+}
+
+function normalizeUrl(url) {
+  const raw = String(url || '').trim();
+  if (!raw) throw new Error('A URL is required.');
+  const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  const parsed = new URL(withScheme); // throws on garbage, which is the point
+  if (!/^https?:$/.test(parsed.protocol)) throw new Error('Only http and https URLs can be opened.');
+  return parsed.toString();
+}
+
+function waitForLoad(tabId, timeout = 15000) {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      chrome.tabs.onUpdated.removeListener(onUpdate);
+      resolve();
+    };
+    const onUpdate = (id, info) => { if (id === tabId && info.status === 'complete') finish(); };
+    chrome.tabs.onUpdated.addListener(onUpdate);
+    setTimeout(finish, timeout);
+  });
+}
+
+async function waitFor(tabId, { selector, milliseconds }) {
+  if (selector) {
+    for (let i = 0; i < 20; i++) {
+      const { found } = await inPage(tabId, pageAct, [SNAPSHOT_ATTR, { kind: 'waitFor', selector }]);
+      if (found) return { found: true, waitedMs: i * 500 };
+      await sleep(500);
+    }
+    return { found: false, timedOut: true };
+  }
+  const ms = Math.min(Math.max(Number(milliseconds) || 0, 0), 10000);
+  await sleep(ms);
+  return { success: true, waitedMs: ms };
+}
+
+// ─── SCREENSHOT (vision) ────────────────────────
+
+async function screenshot(tabId, { save = false } = {}) {
+  const tab = await chrome.tabs.get(tabId);
+  guardTab(tab);
+
+  // captureVisibleTab photographs whatever is on screen in that window, not
+  // the tab it is handed. With the user on another tab, that silently returns
+  // a picture of a completely different page — and the agent then reasons
+  // about it as if it were the page it is working on.
+  if (!tab.active) {
+    return {
+      error: 'This tab is not the one currently on screen, and only the visible tab can be '
+        + 'captured. Use read_page instead, or ask the user to switch back to this tab.',
+    };
+  }
+
+  const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
+  const downscaled = await downscalePng(dataUrl, 1024);
+
+  let filename;
+  if (save) {
+    filename = timestamped(hostnameOf(tab.url) || 'screenshot', 'png');
+    await chrome.downloads.download({ url: dataUrl, filename, conflictAction: 'uniquify' });
+  }
+
+  // The base64 payload is handed to the model as an image block, so a
+  // screenshot is something the agent can actually look at rather than a file
+  // it drops blindly on disk.
+  return {
+    success: true,
+    url: tab.url,
+    saved: filename || false,
+    image: downscaled.replace(/^data:image\/png;base64,/, ''),
+  };
+}
+
+// Full-resolution captures are enormous in tokens. Cap the long edge; fall
+// back to the original if the worker has no canvas.
+async function downscalePng(dataUrl, maxWidth) {
+  try {
+    const blob = await (await fetch(dataUrl)).blob();
+    const bitmap = await createImageBitmap(blob);
+    if (bitmap.width <= maxWidth) return dataUrl;
+
+    const scale = maxWidth / bitmap.width;
+    const canvas = new OffscreenCanvas(maxWidth, Math.round(bitmap.height * scale));
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+    const out = await canvas.convertToBlob({ type: 'image/png' });
+    const buffer = new Uint8Array(await out.arrayBuffer());
+    let binary = '';
+    for (const byte of buffer) binary += String.fromCharCode(byte);
+    return `data:image/png;base64,${btoa(binary)}`;
+  } catch {
+    return dataUrl;
+  }
+}
+
+// ─── DOCUMENTS ──────────────────────────────────
+
+const MIME = {
+  csv: 'text/csv', html: 'text/html', json: 'application/json',
+  md: 'text/markdown', txt: 'text/plain',
+};
+
+async function generateDocument(tabId, { format = 'txt', content = '', filename }) {
+  const ext = MIME[format] ? format : 'txt';
+  const body = String(content).replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+
+  let base = String(filename || '').replace(/\.[^.]+$/, '');
+  if (!base || /^export$/i.test(base)) {
+    const tab = await chrome.tabs.get(tabId).catch(() => null);
+    base = slug(tab?.title) || 'browsermind';
+  }
+
+  const name = timestamped(slug(base) || 'document', ext);
+  const url = `data:${MIME[ext]};charset=utf-8,${encodeURIComponent(body)}`;
+
+  // Downloaded straight from the worker. The previous version injected a
+  // script into the page to build the URL, which meant no export was possible
+  // from a PDF viewer, a Chrome page, or any tab that refused injection.
+  const downloadId = await chrome.downloads.download({ url, filename: name, conflictAction: 'uniquify' });
+  return { success: true, format: ext, filename: name, downloadId, bytes: body.length };
 }
 
 async function downloadFile({ url, filename }) {
-  const id = await chrome.downloads.download({ url, filename, conflictAction: 'uniquify' });
-  return { success: true, downloadId: id };
-}
-
-async function waitAction(tabId, { selector, milliseconds }) {
-  if (milliseconds) { await new Promise(r => setTimeout(r, Math.min(milliseconds, 10000))); return { waited: milliseconds }; }
-  if (selector) {
-    for (let i = 0; i < 20; i++) {
-      const [r] = await chrome.scripting.executeScript({ target: { tabId }, func: (s) => !!document.querySelector(s), args: [selector] });
-      if (r.result) return { found: true };
-      await new Promise(r => setTimeout(r, 500));
-    }
-    return { found: false, timeout: true };
-  }
-  return { success: true };
-}
-
-async function takeScreenshot(tabId) {
-  const tab = await chrome.tabs.get(tabId);
-  const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
-  const now = new Date();
-  const dateStr = now.toISOString().slice(0, 10);
-  const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '-');
-  const domainPart = tab.url ? new URL(tab.url).hostname.replace(/^www\./, '').replace(/\.[^.]+$/, '').replace(/[^a-z0-9]/gi, '-') : 'page';
-  const filename = `screenshot-${domainPart}-${dateStr}_${timeStr}.png`;
-  await chrome.downloads.download({ url: dataUrl, filename });
-  return { success: true };
-}
-
-// ─── GENERATE DOCUMENT ──────────────────────────
-// Always build a descriptive filename with date+time suffix for uniqueness
-async function generateDocument(tabId, { format, content, filename }) {
-  const now     = new Date();
-  const dateStr = now.toISOString().slice(0, 10);
-  const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '-');
-  const suffix  = `${dateStr}_${timeStr}`;
-
-  let resolvedFilename;
-  const isGeneric = !filename || filename === 'export' || filename === `export.${format}`;
-  if (!isGeneric) {
-    const base = filename.replace(/\.[^.]+$/, '').replace(/[^a-z0-9àâäéèêëîïôùûüç_-]+/gi, '-').substring(0, 40);
-    resolvedFilename = `${base}_${suffix}.${format}`;
-  } else {
-    try {
-      const tab = await chrome.tabs.get(tabId);
-      const safeName = (tab.title || 'document')
-        .toLowerCase()
-        .replace(/[^a-z0-9àâäéèêëîïôùûüç]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .substring(0, 35);
-      resolvedFilename = `${safeName}_${suffix}.${format}`;
-    } catch {
-      resolvedFilename = `browsermind_${suffix}.${format}`;
-    }
-  }
-
-  // Ensure extension
-  if (!resolvedFilename.endsWith(`.${format}`)) {
-    resolvedFilename = resolvedFilename.replace(/\.[^.]+$/, '') + `.${format}`;
-  }
-
-  await chrome.scripting.executeScript({
-    target: { tabId },
-    func: (fmt, cnt, fname) => {
-      // Normalize literal \n sequences to real newlines
-      const normalized = cnt.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
-      const mimes = {
-        csv: 'text/csv;charset=utf-8;',
-        html: 'text/html;charset=utf-8;',
-        json: 'application/json;charset=utf-8;',
-        md:   'text/markdown;charset=utf-8;',
-        txt:  'text/plain;charset=utf-8;',
-      };
-      try {
-        // Use data URL via chrome.downloads for reliable download
-        const encoded = encodeURIComponent(normalized);
-        const dataUrl = `data:${mimes[fmt] || 'text/plain;charset=utf-8;'},${encoded}`;
-        chrome.runtime.sendMessage({ type: 'DOWNLOAD_DATA_URL', url: dataUrl, filename: fname });
-      } catch {
-        // Fallback: blob approach
-        const blob = new Blob([normalized], { type: mimes[fmt] || 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = fname; a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 2000);
-      }
-    },
-    args: [format, content, resolvedFilename]
+  const target = normalizeUrl(url);
+  const downloadId = await chrome.downloads.download({
+    url: target,
+    filename: filename ? slug(filename.replace(/\.[^.]+$/, '')) + extensionOf(filename, target) : undefined,
+    conflictAction: 'uniquify',
   });
-  return { success: true, format, filename: resolvedFilename };
+  return { success: true, downloadId, url: target };
+}
+
+function extensionOf(filename, url) {
+  const fromName = /\.[a-z0-9]{1,6}$/i.exec(filename || '');
+  if (fromName) return fromName[0];
+  const fromUrl = /\.[a-z0-9]{1,6}(?=$|\?)/i.exec(url || '');
+  return fromUrl ? fromUrl[0] : '';
+}
+
+function slug(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+}
+
+function timestamped(base, ext) {
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10);
+  const time = now.toTimeString().slice(0, 8).replace(/:/g, '-');
+  return `${base}_${date}_${time}.${ext}`;
+}
+
+function hostnameOf(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
 }
 
 // ═══════════════════════════════════════════════
-//  External APIs (api_call tool)
+//  WEB SEARCH
+//
+//  Runs a real search in a background tab and reads the results page.
+//  The previous implementation called DuckDuckGo's Instant Answer API, which
+//  only answers encyclopedic lookups: for an ordinary query it returned an
+//  empty list and the agent concluded the web had nothing to say.
+// ═══════════════════════════════════════════════
+
+async function webSearch({ query, max_results = 6 }) {
+  const q = String(query || '').trim();
+  if (!q) throw new Error('A search query is required.');
+  const limit = Math.min(Math.max(Number(max_results) || 6, 1), 10);
+
+  const tab = await chrome.tabs.create({
+    url: `https://duckduckgo.com/?q=${encodeURIComponent(q)}&kl=wt-wt`,
+    active: false,
+  });
+
+  try {
+    await waitForLoad(tab.id);
+    await sleep(400); // results render just after load
+    const [frame] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id }, func: scrapeResults, args: [limit],
+    });
+    const results = frame?.result || [];
+    return { query: q, count: results.length, results };
+  } finally {
+    await chrome.tabs.remove(tab.id).catch(() => {});
+  }
+}
+
+/* eslint-disable no-undef -- runs in the results page */
+function scrapeResults(limit) {
+  const seen = new Set();
+  const out = [];
+
+  const push = (title, href, snippet) => {
+    if (out.length >= limit) return;
+    if (!href || !title) return;
+    let host;
+    try { host = new URL(href).hostname; } catch { return; }
+    if (/duckduckgo\.com$/.test(host)) return;
+    if (seen.has(href)) return;
+    seen.add(href);
+    out.push({
+      title: title.replace(/\s+/g, ' ').trim().slice(0, 160),
+      url: href,
+      snippet: (snippet || '').replace(/\s+/g, ' ').trim().slice(0, 300),
+    });
+  };
+
+  for (const article of document.querySelectorAll('article[data-testid="result"], article[data-nrn="result"]')) {
+    const link = article.querySelector('a[data-testid="result-title-a"], h2 a');
+    const snippet = article.querySelector('[data-result="snippet"], [data-testid="result-snippet"]');
+    if (link) push(link.textContent, link.href, snippet?.textContent);
+  }
+
+  if (out.length === 0) {
+    // Layout changed or the lite page was served: fall back to plain links.
+    for (const link of document.querySelectorAll('#links a.result__a, .result__title a, h2 a[href^="http"]')) {
+      push(link.textContent, link.href, link.closest('.result')?.querySelector('.result__snippet')?.textContent);
+    }
+  }
+  return out;
+}
+/* eslint-enable no-undef */
+
+// ═══════════════════════════════════════════════
+//  STRUCTURED DATA APIS
+//  Two APIs that return values browsing cannot produce reliably. Everything
+//  else the agent can simply read on the web.
 // ═══════════════════════════════════════════════
 
 const API_REGISTRY = {
   nominatim: {
     name: 'Nominatim (OpenStreetMap)',
     baseUrl: 'https://nominatim.openstreetmap.org',
-    method: 'GET',
+    defaultParams: { format: 'json', addressdetails: 1, limit: 5 },
+    headers: { 'User-Agent': 'BrowserMind browser extension' },
   },
   open_meteo: {
     name: 'Open-Meteo',
     baseUrl: 'https://api.open-meteo.com/v1',
-    method: 'GET',
-  },
-  duckduckgo: {
-    name: 'DuckDuckGo',
-    baseUrl: 'https://api.duckduckgo.com',
-    method: 'GET',
-  },
-  rest_countries: {
-    name: 'REST Countries',
-    baseUrl: 'https://restcountries.com/v3.1',
-    method: 'GET',
-  },
-  wikidata: {
-    name: 'Wikidata',
-    baseUrl: 'https://www.wikidata.org/w/api.php',
-    method: 'GET',
+    defaultParams: {},
+    headers: {},
   },
 };
 
-async function callExternalAPI({ api, endpoint = '', params = {} }) {
-  const registry = API_REGISTRY[api];
-  if (!registry) {
-    throw new Error(`API inconnue: ${api}. APIs disponibles: ${Object.keys(API_REGISTRY).join(', ')}`);
+async function callApi({ api, endpoint = '', params = {} }) {
+  const def = API_REGISTRY[api];
+  if (!def) {
+    throw new Error(`Unknown API "${api}". Available: ${Object.keys(API_REGISTRY).join(', ')}`);
   }
-  
-  let url = registry.baseUrl + endpoint;
-  const queryParams = { ...params };
-  
-  if (api === 'nominatim') {
-    queryParams.format = 'json';
-    queryParams.addressdetails = 1;
+
+  const path = endpoint.startsWith('/') ? endpoint : (endpoint ? `/${endpoint}` : '');
+  const url = new URL(def.baseUrl + path);
+  for (const [key, value] of Object.entries({ ...def.defaultParams, ...params })) {
+    if (value !== undefined && value !== null) url.searchParams.set(key, value);
   }
-  
-  const urlObj = new URL(url);
-  Object.entries(queryParams).forEach(([k, v]) => {
-    urlObj.searchParams.set(k, v);
-  });
-  
-  const headers = {};
-  if (api === 'wikidata') {
-    headers['Accept'] = 'application/json';
-    headers['User-Agent'] = 'BrowserMind/1.0';
-  }
-  
-  const res = await fetch(urlObj.toString(), {
-    method: registry.method,
-    headers,
-  });
-  
-  if (!res.ok) {
-    throw new Error(`API ${api}: HTTP ${res.status}`);
-  }
-  
-  const contentType = res.headers.get('content-type') || '';
-  let data;
-  if (contentType.includes('application/json')) {
-    data = await res.json();
-  } else {
-    data = await res.text();
-  }
-  
-  return { api, name: registry.name, data };
+
+  const res = await fetch(url.toString(), { headers: { Accept: 'application/json', ...def.headers } });
+  if (!res.ok) throw new Error(`${def.name}: HTTP ${res.status}`);
+
+  const type = res.headers.get('content-type') || '';
+  const data = type.includes('json') ? await res.json() : await res.text();
+  return { api, source: def.name, data };
 }
 
-// ═══════════════════════════════════════════════
-//  Web Search (web_search tool)
-// ═══════════════════════════════════════════════
-
-/**
- * Web search using official DuckDuckGo Instant Answer API.
- * Replaces previous HTML scraping to comply with Chrome Web Store policies.
- */
-async function webSearch({ query, max_results = 5 }) {
-  const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&no_redirect=1`;
-  
-  const res = await fetch(url, {
-    headers: {
-      'Accept': 'application/json',
-      'User-Agent': 'BrowserMind/1.0 (Chrome Extension)'
-    },
-  });
-  
-  if (!res.ok) {
-    throw new Error(`Web search failed: HTTP ${res.status}`);
-  }
-  
-  const data = await res.json();
-  const results = [];
-
-  // Extract from Abstract
-  if (data.AbstractURL && data.AbstractText) {
-    results.push({
-      title: data.AbstractSource || 'Abstract',
-      url: data.AbstractURL,
-      snippet: data.AbstractText.substring(0, 200)
-    });
-  }
-
-  // Extract from RelatedTopics
-  if (data.RelatedTopics && Array.isArray(data.RelatedTopics)) {
-    for (const topic of data.RelatedTopics) {
-      if (results.length >= max_results) break;
-      
-      // RelatedTopics can contain categories or direct results
-      if (topic.FirstURL && topic.Text) {
-        results.push({
-          title: topic.Text.split(' - ')[0] || topic.Text.substring(0, 50),
-          url: topic.FirstURL,
-          snippet: topic.Text
-        });
-      } else if (topic.Topics && Array.isArray(topic.Topics)) {
-        // Handle sub-topics
-        for (const sub of topic.Topics) {
-          if (results.length >= max_results) break;
-          if (sub.FirstURL && sub.Text) {
-            results.push({
-              title: sub.Text.split(' - ')[0] || sub.Text.substring(0, 50),
-              url: sub.FirstURL,
-              snippet: sub.Text
-            });
-          }
-        }
-      }
-    }
-  }
-  
-  return { query, count: results.length, results };
-}
-
-// ═══════════════════════════════════════════════
-//  New Tab (new_tab tool)
-// ═══════════════════════════════════════════════
-
-async function openNewTab({ url, active = true }) {
-  if (!url) {
-    throw new Error('URL requise pour new_tab');
-  }
-  
-  if (!url.startsWith('http')) {
-    url = 'https://' + url;
-  }
-  
-  const tab = await chrome.tabs.create({ url, active });
-  
-  await new Promise((resolve) => {
-    const fn = (tabId, info) => {
-      if (tabId === tab.id && info.status === 'complete') {
-        chrome.tabs.onUpdated.removeListener(fn);
-        resolve();
-      }
-    };
-    chrome.tabs.onUpdated.addListener(fn);
-    setTimeout(() => {
-      chrome.tabs.onUpdated.removeListener(fn);
-      resolve();
-    }, 8000);
-  });
-  
-  return { success: true, tabId: tab.id, url: tab.url, active: tab.active };
-}
-
-// ═══════════════════════════════════════════════
-//  CUSTOM TOOL EXECUTOR
-//  Handles non-native tools defined by the user or loaded remotely.
-// ═══════════════════════════════════════════════
-
-async function executeCustomTool(toolName, input, tabId) {
-  // Load custom tools from storage
-  const data = await chrome.storage.local.get(['customTools', 'remoteToolsCache']);
-  const allCustom = [
-    ...(data.customTools || []),
-    ...(data.remoteToolsCache || [])
-  ];
-
-  const tool = allCustom.find(t => t.name === toolName);
-  if (!tool) return null;
-
-  // Route via executor hint if present
-  const executor = tool.executor || null;
-
-  switch (executor) {
-    // Alias to generate_document with forced format
-    case 'generate_document_ext':
-      return generateDocument(tabId, {
-        format: input.format || tool.defaultFormat || 'txt',
-        content: input.content || '',
-        filename: input.filename || tool.name
-      });
-
-    // Alias to api_call with pre-configured endpoint
-    case 'api_call_ext':
-      return callExternalAPI({
-        api: tool.api || input.api,
-        endpoint: tool.endpoint || input.endpoint || '',
-        params: { ...(tool.defaultParams || {}), ...input }
-      });
-
-    // Alias to web_search with constructed query
-    case 'web_search_ext':
-      return webSearch({
-        query: input.query || (tool.queryTemplate || '').replace('{{input}}', JSON.stringify(input)),
-        max_results: input.max_results || tool.maxResults || 5
-      });
-
-    // No executor → generic return (declarative tools only)
-    default: {
-      return { 
-        success: true, 
-        tool: toolName, 
-        input, 
-        note: 'declarative tool — no executor defined' 
-      };
-    }
-  }
+// ─── UTILS ──────────────────────────────────────
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
