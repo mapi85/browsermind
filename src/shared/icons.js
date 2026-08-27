@@ -95,30 +95,13 @@ export const ICONS = {
   arrowUpRight: () => SVG('<path d="M7 7h10v10"/><path d="M7 17 17 7"/>'),
 };
 
-export const ICO = (name, size) => ICONS[name] ? ICONS[name](size) : '';
+export const ICO = (name, size) => (ICONS[name] ? ICONS[name](size) : '');
 
-export const TOOL_ICONS = {
-  click: 'pointer',
-  type_text: 'keyboard',
-  scroll: 'arrowsUpDown',
-  navigate: 'externalLink',
-  get_page_content: 'fileText',
-  fill_form: 'edit',
-  extract_data: 'table',
-  download_file: 'download',
-  wait: 'clock',
-  take_screenshot: 'camera',
-  generate_document: 'fileOutput',
-};
-
-export const ROLE_ICONS = {
-  user: 'user',
-  assistant: 'sparkles',
-  action: 'zap',
-  error: 'alertTriangle',
-  system: 'messageCircle',
-  export: 'fileDown',
-};
+// Tool glyphs come from the tool definitions themselves (shared/tools.js),
+// so adding a tool cannot leave the UI without an icon.
+export function toolIconSvg(iconName, size = 14) {
+  return ICO(iconName || 'zap', size);
+}
 
 export const EXPORT_ICONS = {
   csv: 'table',
@@ -129,37 +112,26 @@ export const EXPORT_ICONS = {
   png: 'image',
 };
 
-export const PROVIDER_ICONS = {
-  anthropic: '🟣',
-  openai: '🤖',
-  xai: '⚡',
-  mistral: '🌊',
-  deepseek: '🔍',
-  gemini: '🔷',
-  cohere: '🧩',
-  openrouter: '🔀',
-  zai: '🌐',
-  custom_openai: '🔧',
-  custom_anthropic: '🔧',
-};
-
-export function toolIconSvg(tool) {
-  const name = TOOL_ICONS[tool] || 'zap';
-  return ICO(name, 14);
+export function exportIconSvg(format, size = 20) {
+  return ICO(EXPORT_ICONS[format] || 'fileDown', size);
 }
 
-export function roleIconSvg(role) {
-  const name = ROLE_ICONS[role] || 'messageCircle';
-  return ICO(name, 13);
+export function stepStatusIcon(status, size = 13) {
+  if (status === 'success') return ICO('check', size);
+  if (status === 'error') return ICO('alertTriangle', size);
+  if (status === 'cancelled') return ICO('x', size);
+  return ICO('circleDot', size);
 }
 
-export function exportIconSvg(format) {
-  const name = EXPORT_ICONS[format] || 'fileDown';
-  return ICO(name, 20);
-}
+// Provider marks are drawn as a tinted initial rather than a brand logo:
+// no third-party trademark ships in the extension, and a new provider needs
+// no new asset.
+const AVATAR_HUES = [262, 199, 152, 28, 341, 218, 96, 8];
 
-export function stepStatusIcon(status) {
-  if (status === 'success' || status === '✅') return ICO('check', 13);
-  if (status === 'error' || status === '❌') return ICO('alertTriangle', 13);
-  return ICO('clock', 13);
+export function providerAvatar(name) {
+  const label = String(name || '?').trim();
+  const letter = (label[0] || '?').toUpperCase();
+  let hash = 0;
+  for (let i = 0; i < label.length; i++) hash = (hash * 31 + label.charCodeAt(i)) >>> 0;
+  return { letter, hue: AVATAR_HUES[hash % AVATAR_HUES.length] };
 }
