@@ -1,97 +1,84 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  NATIVE_TOOLS, getAllRegisteredTools, getToolByName, getToolsForMode,
-  getModeById, _setRegistryForTests,
-} from '../src/shared/tools.js';
-import { BUILTIN_MODES, detectModeFromUrl } from '../src/shared/modes.js';
+import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { NATIVE_TOOLS, DOM_TOOLS, VISION_TOOLS, getAllTools, getToolByName, isNativeTool } from '../src/shared/tools.js';
 
-beforeEach(() => {
-  _setRegistryForTests([...NATIVE_TOOLS], {});
-});
+describe('tool registry', () => {
+  it('exposes a fixed native set', () => {
+    expect(getAllTools()).toBe(NATIVE_TOOLS);
+    expect(NATIVE_TOOLS.length).toBeGreaterThan(10);
+  });
 
-describe('native tools', () => {
-  it('exposes the 14 native tools with valid schemas', () => {
-    expect(NATIVE_TOOLS).toHaveLength(14);
-    for (const t of NATIVE_TOOLS) {
-      expect(t.name).toMatch(/^[a-z0-9_]+$/);
-      expect(typeof t.description).toBe('string');
-      expect(t.input_schema.type).toBe('object');
+  it('gives every tool a unique snake_case name', () => {
+    const names = NATIVE_TOOLS.map(t => t.name);
+    expect(new Set(names).size).toBe(names.length);
+    for (const name of names) expect(name, name).toMatch(/^[a-z][a-z0-9_]*$/);
+  });
+
+  it('gives every tool a description, a schema, an icon and a label key', () => {
+    for (const tool of NATIVE_TOOLS) {
+      expect(tool.description.length, tool.name).toBeGreaterThan(20);
+      expect(tool.input_schema.type, tool.name).toBe('object');
+      expect(tool.input_schema.properties, tool.name).toBeTypeOf('object');
+      expect(tool.icon, tool.name).toBeTruthy();
+      expect(tool.labelKey, tool.name).toMatch(/^tool/);
     }
   });
 
-  it('getToolByName resolves and misses cleanly', () => {
-    expect(getToolByName('click')?.name).toBe('click');
-    expect(getToolByName('nope')).toBeNull();
-  });
-});
-
-describe('getToolsForMode', () => {
-  it("'libre' (tools: ['*']) returns the whole registry", () => {
-    expect(getToolsForMode('libre')).toHaveLength(getAllRegisteredTools().length);
-  });
-
-  it('filters tools to the mode allowlist', () => {
-    const tools = getToolsForMode('recherche');
-    const names = tools.map(t => t.name);
-    expect(names).toContain('web_search');
-    expect(names).not.toContain('fill_form');
-    expect([...names].sort()).toEqual([...BUILTIN_MODES.recherche.tools].sort());
-  });
-
-  it('unknown mode falls back to the whole registry', () => {
-    expect(getToolsForMode('does_not_exist')).toHaveLength(getAllRegisteredTools().length);
-  });
-
-  it('custom modes filter custom tools too', () => {
-    const customTool = { name: 'meteo', description: 'd', input_schema: { type: 'object' }, category: 'custom' };
-    _setRegistryForTests([...NATIVE_TOOLS, customTool], {
-      mon_mode: { id: 'mon_mode', tools: ['meteo', 'click'] },
-    });
-    const names = getToolsForMode('mon_mode').map(t => t.name);
-    expect(names.sort()).toEqual(['click', 'meteo']);
-  });
-});
-
-describe('getModeById', () => {
-  it('resolves builtin, then custom, then defaults to libre', () => {
-    expect(getModeById('voyage').id).toBe('voyage');
-    _setRegistryForTests([...NATIVE_TOOLS], { perso: { id: 'perso' } });
-    expect(getModeById('perso').id).toBe('perso');
-    expect(getModeById('inconnu').id).toBe('libre');
-  });
-});
-
-describe('builtin modes integrity', () => {
-  it('every allowlisted tool name exists in the registry', () => {
-    const known = new Set(NATIVE_TOOLS.map(t => t.name));
-    for (const mode of Object.values(BUILTIN_MODES)) {
-      for (const name of mode.tools) {
-        if (name === '*') continue;
-        expect(known.has(name), `${mode.id} references unknown tool ${name}`).toBe(true);
+  it('only requires parameters it also declares', () => {
+    for (const tool of NATIVE_TOOLS) {
+      for (const required of tool.input_schema.required || []) {
+        expect(tool.input_schema.properties[required], `${tool.name}.${required}`).toBeDefined();
       }
     }
   });
 
-  it('mode ids match their keys', () => {
-    for (const [key, mode] of Object.entries(BUILTIN_MODES)) {
-      expect(mode.id).toBe(key);
+  it('looks tools up by name', () => {
+    expect(getToolByName('click').name).toBe('click');
+    expect(getToolByName('nope')).toBeNull();
+    expect(isNativeTool('read_page')).toBe(true);
+    expect(isNativeTool('remote_thing')).toBe(false);
+  });
+
+  it('lets page actions address elements by index', () => {
+    for (const name of ['click', 'type_text']) {
+      expect(getToolByName(name).input_schema.properties.element.type).toBe('number');
+    }
+    const field = getToolByName('fill_form').input_schema.properties.fields.items;
+    expect(field.properties.element.type).toBe('number');
+  });
+
+  it('classifies page tools so they run one at a time', () => {
+    for (const name of ['read_page', 'click', 'type_text', 'fill_form', 'scroll']) {
+      expect(DOM_TOOLS.has(name), name).toBe(true);
+    }
+    for (const name of ['web_search', 'api_call', 'new_tab', 'download_file']) {
+      expect(DOM_TOOLS.has(name), name).toBe(false);
     }
   });
-});
 
-describe('detectModeFromUrl', () => {
-  it('matches builtin url patterns', () => {
-    expect(detectModeFromUrl('https://www.booking.com/hotel/x')).toBe('voyage');
-    expect(detectModeFromUrl('https://fr.wikipedia.org/wiki/Lyon')).toBe('recherche');
+  it('marks the screenshot tool as producing an image', () => {
+    expect(VISION_TOOLS.has('take_screenshot')).toBe(true);
   });
 
-  it('returns null for unmatched or empty urls', () => {
-    expect(detectModeFromUrl('https://example.org')).toBeNull();
-    expect(detectModeFromUrl('')).toBeNull();
+  it('exposes only the two structured-data APIs', () => {
+    expect(getToolByName('api_call').input_schema.properties.api.enum)
+      .toEqual(['nominatim', 'open_meteo']);
   });
 
-  it('considers custom modes when a merged map is provided', () => {
-    const merged = { ...BUILTIN_MODES, perso: { id: 'perso', urlPatterns: ['monsite.fr'] } };
-    expect(detectModeFromUrl('https://monsite.fr/page', merged)).toBe('perso');
+  // Model-facing text stays in English on purpose: tool-calling accuracy is
+  // better and the prompt is shorter. This guards against a translation
+  // creeping back into the tool definitions.
+  it('keeps every model-facing string free of accented characters', () => {
+    for (const tool of NATIVE_TOOLS) {
+      const text = JSON.stringify(tool.input_schema) + tool.description;
+      expect(text, tool.name).not.toMatch(/[àâäéèêëîïôöùûüçñ]/i);
+    }
+  });
+
+  it('no longer ships a custom or remote tool loader', () => {
+    const source = readFileSync('src/shared/tools.js', 'utf8');
+    for (const gone of ['loadRemoteTools', 'customTools', 'remoteToolsCache', 'executor']) {
+      expect(source, gone).not.toContain(gone);
+    }
   });
 });
